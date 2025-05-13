@@ -5,7 +5,7 @@
 ## Übersicht
 
 *   **VM:** Slowman
-*   **Plattform:** [HackMyVM](https://hackmyvm.eu/machines/machine.php?vm=Slowman)
+*   **Plattform:** [https://hackmyvm.eu/machines/machine.php?vm=Slowman]
 *   **Schwierigkeit:** Easy
 *   **Autor der VM:** DarkSpirit
 *   **Datum des Writeups:** 2023-12-04
